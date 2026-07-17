@@ -1,0 +1,45 @@
+APP_ENV=development
+APP_NAME=Clube Detail
+APP_URL=http://localhost:3000
+APP_TIMEZONE=America/Fortaleza
+ALLOWED_ORIGINS=http://localhost:3000
+
+SUPABASE_URL=https://example-project.supabase.co
+SUPABASE_ANON_KEY=sb_publishable_example
+SUPABASE_SERVICE_ROLE_KEY=sb_secret_example
+
+VITE_APP_NAME=Clube Detail
+VITE_SUPABASE_URL=https://example-project.supabase.co
+VITE_SUPABASE_ANON_KEY=sb_publishable_example
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_example
+VITE_SUPPORT_WHATSAPP_NUMBER=5585999999999
+VITE_TURNSTILE_SITE_KEY=0x4AAAAA-example
+VITE_PAYMENTS_ENV=test
+
+STRIPE_SECRET_KEY=sk_test_example
+STRIPE_WEBHOOK_SECRET=whsec_example
+STRIPE_PUBLISHABLE_KEY=pk_test_example
+STRIPE_SUCCESS_URL=http://localhost:3000/dashboard?checkout=success
+STRIPE_CANCEL_URL=http://localhost:3000/dashboard?checkout=canceled
+STRIPE_PORTAL_RETURN_URL=http://localhost:3000/dashboard?billing=returned
+SUBSCRIPTION_GRACE_PERIOD_DAYS=3
+
+RESEND_API_KEY=re_example
+EMAIL_FROM=Clube Detail <no-reply@example.com>
+EMAIL_REPLY_TO=suporte@example.com
+ADMIN_ALERT_EMAIL=ops@example.com
+
+GOOGLE_CLIENT_ID=google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=google-client-secret
+GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
+GOOGLE_CALENDAR_ID=primary
+
+SESSION_SECRET=replace-with-at-least-32-characters-session-secret
+ENCRYPTION_KEY=replace-with-at-least-32-characters-encryption-key
+TURNSTILE_SECRET_KEY=0x4AAAAA-secret-example
+
+CLOUDFLARE_ACCOUNT_ID=cloudflare-account-id
+CLOUDFLARE_API_TOKEN=cloudflare-api-token
+CLOUDFLARE_ZONE_ID=cloudflare-zone-id
+
+LOG_LEVEL=debug
