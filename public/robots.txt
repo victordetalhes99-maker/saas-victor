@@ -1,0 +1,14 @@
+User-agent: *
+Disallow: /signup
+Disallow: /login
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /admin
+Disallow: /admin-login
+Disallow: /dashboard
+Disallow: /agendar
+Disallow: /veiculos
+Disallow: /historico
+Disallow: /planos
+Disallow: /excluir-dados
+Allow: /
