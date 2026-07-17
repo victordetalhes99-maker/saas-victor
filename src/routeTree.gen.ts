@@ -25,6 +25,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as SrcSplatRouteImport } from './routes/src.$'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as AdminUsuariosRouteImport } from './routes/admin.usuarios'
 import { Route as AdminSolicitacoesRouteImport } from './routes/admin.solicitacoes'
@@ -139,6 +140,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const SrcSplatRoute = SrcSplatRouteImport.update({
+  id: '/src/$',
+  path: '/src/$',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiHealthRoute = ApiHealthRouteImport.update({
   id: '/api/health',
@@ -365,6 +371,7 @@ export interface FileRoutesByFullPath {
   '/admin/solicitacoes': typeof AdminSolicitacoesRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/api/health': typeof ApiHealthRoute
+  '/src/$': typeof SrcSplatRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/configuracoes/administrador': typeof AdminConfiguracoesAdministradorRoute
   '/admin/configuracoes/agenda': typeof AdminConfiguracoesAgendaRoute
@@ -416,6 +423,7 @@ export interface FileRoutesByTo {
   '/admin/solicitacoes': typeof AdminSolicitacoesRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/api/health': typeof ApiHealthRoute
+  '/src/$': typeof SrcSplatRoute
   '/admin': typeof AdminIndexRoute
   '/admin/configuracoes/administrador': typeof AdminConfiguracoesAdministradorRoute
   '/admin/configuracoes/agenda': typeof AdminConfiguracoesAgendaRoute
@@ -470,6 +478,7 @@ export interface FileRoutesById {
   '/admin/solicitacoes': typeof AdminSolicitacoesRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/api/health': typeof ApiHealthRoute
+  '/src/$': typeof SrcSplatRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/configuracoes/administrador': typeof AdminConfiguracoesAdministradorRoute
   '/admin/configuracoes/agenda': typeof AdminConfiguracoesAgendaRoute
@@ -524,6 +533,7 @@ export interface FileRouteTypes {
     | '/admin/solicitacoes'
     | '/admin/usuarios'
     | '/api/health'
+    | '/src/$'
     | '/admin/'
     | '/admin/configuracoes/administrador'
     | '/admin/configuracoes/agenda'
@@ -575,6 +585,7 @@ export interface FileRouteTypes {
     | '/admin/solicitacoes'
     | '/admin/usuarios'
     | '/api/health'
+    | '/src/$'
     | '/admin'
     | '/admin/configuracoes/administrador'
     | '/admin/configuracoes/agenda'
@@ -628,6 +639,7 @@ export interface FileRouteTypes {
     | '/admin/solicitacoes'
     | '/admin/usuarios'
     | '/api/health'
+    | '/src/$'
     | '/admin/'
     | '/admin/configuracoes/administrador'
     | '/admin/configuracoes/agenda'
@@ -662,6 +674,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   TermosRoute: typeof TermosRoute
   ApiHealthRoute: typeof ApiHealthRoute
+  SrcSplatRoute: typeof SrcSplatRoute
   ApiAuthGoogleRoute: typeof ApiAuthGoogleRouteWithChildren
   ApiGoogleCalendarDisconnectRoute: typeof ApiGoogleCalendarDisconnectRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
@@ -780,6 +793,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/src/$': {
+      id: '/src/$'
+      path: '/src/$'
+      fullPath: '/src/$'
+      preLoaderRoute: typeof SrcSplatRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/health': {
       id: '/api/health'
@@ -1148,6 +1168,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   TermosRoute: TermosRoute,
   ApiHealthRoute: ApiHealthRoute,
+  SrcSplatRoute: SrcSplatRoute,
   ApiAuthGoogleRoute: ApiAuthGoogleRouteWithChildren,
   ApiGoogleCalendarDisconnectRoute: ApiGoogleCalendarDisconnectRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,

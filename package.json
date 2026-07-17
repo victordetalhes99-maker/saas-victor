@@ -13,8 +13,9 @@
     "typecheck": "tsc --noEmit",
     "test:unit": "node --import tsx --test tests/**/*.test.ts",
     "test": "npm run typecheck && npm run test:unit",
-    "deploy:dry-run": "wrangler deploy --config .output/server/wrangler.json --keep-vars --dry-run",
-    "deploy": "wrangler deploy --config .output/server/wrangler.json --keep-vars"
+    "deploy:built": "npx wrangler deploy --config .output/server/wrangler.json --name saas-victor --keep-vars",
+    "deploy:dry-run": "npx wrangler deploy --config .output/server/wrangler.json --name saas-victor --keep-vars --dry-run",
+    "deploy": "npm run build && npm run deploy:built"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -94,6 +95,7 @@
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
-    "vite": "^8.0.16"
+    "vite": "^8.0.16",
+    "wrangler": "^4.112.0"
   }
 }
