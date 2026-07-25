@@ -102,16 +102,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "Clube de assinatura para lavagem e estetica automotiva com area do assinante, pagamentos e agendamentos protegidos.",
       },
-      {
-        property: "og:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ce0cbae7-a98e-4ac3-8ba2-79d4c2c6be64/id-preview-6b30d414--16f67c4d-bb85-4dca-9aee-8cdd7b6a0bbd.lovable.app-1780519244850.png",
-      },
-      {
-        name: "twitter:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ce0cbae7-a98e-4ac3-8ba2-79d4c2c6be64/id-preview-6b30d414--16f67c4d-bb85-4dca-9aee-8cdd7b6a0bbd.lovable.app-1780519244850.png",
-      },
     ],
     links: [{ rel: "stylesheet", href: appCss }],
   }),

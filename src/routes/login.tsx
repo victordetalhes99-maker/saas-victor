@@ -9,7 +9,6 @@ import { checkRateLimit, recordAttempt } from "@/lib/rate-limit.functions";
 import { STAFF_ROLES, hasAnyRole } from "@/lib/rbac";
 import {
   UserRound,
-  ArrowLeft,
   Mail,
   Lock,
   Eye,
@@ -323,16 +322,6 @@ function LoginPage() {
                   </Link>
                 </p>
               </form>
-
-              <div className="mt-6 border-t border-white/[0.06] pt-5">
-                <Link
-                  to="/admin-login"
-                  className="group flex items-center justify-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:border-white/[0.12] hover:bg-white/[0.05] hover:text-foreground"
-                >
-                  Acessar painel administrativo
-                  <ArrowLeft className="h-4 w-4 rotate-180 transition-transform group-hover:translate-x-0.5" />
-                </Link>
-              </div>
             </div>
 
             {/* Footer */}
