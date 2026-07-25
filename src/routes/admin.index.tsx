@@ -39,7 +39,7 @@ function AdminHomePage() {
         <Stat label="Agendamentos" value={data?.appointments ?? "—"} />
         <Stat label="Planos" value={data?.plans ?? "—"} />
       </div>
-      <Link to="/admin/usuarios" className="text-sm text-primary">
+      <Link to="/admin/clientes" className="text-sm text-primary">
         Ir para gestão de clientes
       </Link>
     </SimplePage>

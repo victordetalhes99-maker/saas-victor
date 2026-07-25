@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { SimplePage } from "@/components/simple-page";
+import { checkRateLimit, recordAttempt } from "@/lib/rate-limit.functions";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -32,11 +33,21 @@ function LoginPage() {
       return;
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
     setBusy(true);
     try {
+      const limit = await checkRateLimit({ data: { action: "login", email: normalizedEmail } });
+      if (!limit.ok) {
+        toast.error(limit.message);
+        return;
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
         password,
+      });
+      void recordAttempt({
+        data: { action: "login", email: normalizedEmail, success: !error && !!data.user },
       });
       if (error || !data.user) throw error ?? new Error("auth_failed");
 

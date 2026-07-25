@@ -316,3 +316,59 @@ export const updateAppearancePrefs = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// -------- Modo de emergência (pausa global de novos agendamentos) --------
+// Coluna já existia em company_settings (emergency_mode / emergency_mode_at /
+// emergency_mode_by / emergency_mode_reason) mas não havia nenhuma tela nem
+// server function que a utilizasse — a página "/admin/configuracoes/zona-de-perigo"
+// era apenas um placeholder. A regra é reforçada no servidor (dentro da RPC
+// create_client_appointment, ver migration 20260725000000_enforce_booking_rules.sql),
+// não apenas escondendo um botão no frontend.
+
+const emergencyModeSchema = z.object({
+  enabled: z.boolean(),
+  reason: z.string().trim().max(500).optional(),
+});
+
+export const setEmergencyMode = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => emergencyModeSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await ensureOwner(context as unknown as Ctx);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: existing } = await supabaseAdmin
+      .from("company_settings")
+      .select("id")
+      .limit(1)
+      .maybeSingle();
+
+    const payload = {
+      emergency_mode: data.enabled,
+      emergency_mode_at: data.enabled ? new Date().toISOString() : null,
+      emergency_mode_by: data.enabled ? context.userId : null,
+      emergency_mode_reason: data.enabled ? (data.reason ?? null) : null,
+      updated_by: context.userId,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (!existing) {
+      const { error } = await supabaseAdmin.from("company_settings").insert(payload);
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await supabaseAdmin
+        .from("company_settings")
+        .update(payload)
+        .eq("id", existing.id);
+      if (error) throw new Error(error.message);
+    }
+
+    await supabaseAdmin.from("admin_logs").insert({
+      admin_id: context.userId,
+      action: data.enabled ? "emergency_mode_enabled" : "emergency_mode_disabled",
+      entity: "company_settings",
+      entity_id: existing?.id ?? null,
+      payload: { reason: data.reason ?? null },
+    });
+
+    return { ok: true };
+  });

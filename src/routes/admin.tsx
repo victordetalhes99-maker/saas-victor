@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 
 const ADMIN_LINKS = [
   { to: "/admin/", label: "Visão geral" },
-  { to: "/admin/usuarios", label: "Clientes" },
+  { to: "/admin/clientes", label: "Clientes" },
   { to: "/admin/solicitacoes", label: "Solicitações" },
   { to: "/admin/agenda", label: "Agenda" },
   { to: "/admin/relatorios", label: "Relatórios" },

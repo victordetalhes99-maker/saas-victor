@@ -246,7 +246,8 @@ function AgendaPage() {
 
   const friendlyApptError = (err: { code?: string; message?: string } | null) => {
     if (!err) return "Erro desconhecido.";
-    if (err.code === "23505") return "Já existe um agendamento ativo neste horário.";
+    if (err.code === "23505" || err.code === "23P01")
+      return "Já existe um agendamento ativo neste horário.";
     if (err.message?.includes("Horário bloqueado")) return "Horário bloqueado pelo administrador.";
     return err.message ?? "Erro ao atualizar agendamento.";
   };

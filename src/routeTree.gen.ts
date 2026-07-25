@@ -18,6 +18,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as ContaBloqueadaRouteImport } from './routes/conta-bloqueada'
 import { Route as CadastroRouteImport } from './routes/cadastro'
+import { Route as AtivarRouteImport } from './routes/ativar'
 import { Route as AssinaturaPendenteRouteImport } from './routes/assinatura-pendente'
 import { Route as AguardandoAprovacaoRouteImport } from './routes/aguardando-aprovacao'
 import { Route as AdminLoginRouteImport } from './routes/admin-login'
@@ -34,6 +35,7 @@ import { Route as AdminPlanosRouteImport } from './routes/admin.planos'
 import { Route as AdminPagamentosRouteImport } from './routes/admin.pagamentos'
 import { Route as AdminFinanceiroRouteImport } from './routes/admin.financeiro'
 import { Route as AdminExtrasRouteImport } from './routes/admin.extras'
+import { Route as AdminConvitesRouteImport } from './routes/admin.convites'
 import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
 import { Route as AdminConfigRouteImport } from './routes/admin.config'
 import { Route as AdminClientesRouteImport } from './routes/admin.clientes'
@@ -105,6 +107,11 @@ const ContaBloqueadaRoute = ContaBloqueadaRouteImport.update({
 const CadastroRoute = CadastroRouteImport.update({
   id: '/cadastro',
   path: '/cadastro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AtivarRoute = AtivarRouteImport.update({
+  id: '/ativar',
+  path: '/ativar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AssinaturaPendenteRoute = AssinaturaPendenteRouteImport.update({
@@ -184,6 +191,11 @@ const AdminFinanceiroRoute = AdminFinanceiroRouteImport.update({
 const AdminExtrasRoute = AdminExtrasRouteImport.update({
   id: '/extras',
   path: '/extras',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminConvitesRoute = AdminConvitesRouteImport.update({
+  id: '/convites',
+  path: '/convites',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminConfiguracoesRoute = AdminConfiguracoesRouteImport.update({
@@ -341,6 +353,7 @@ export interface FileRoutesByFullPath {
   '/admin-login': typeof AdminLoginRoute
   '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
   '/assinatura-pendente': typeof AssinaturaPendenteRoute
+  '/ativar': typeof AtivarRoute
   '/cadastro': typeof CadastroRoute
   '/conta-bloqueada': typeof ContaBloqueadaRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -363,6 +376,7 @@ export interface FileRoutesByFullPath {
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/config': typeof AdminConfigRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRouteWithChildren
+  '/admin/convites': typeof AdminConvitesRoute
   '/admin/extras': typeof AdminExtrasRoute
   '/admin/financeiro': typeof AdminFinanceiroRoute
   '/admin/pagamentos': typeof AdminPagamentosRoute
@@ -393,6 +407,7 @@ export interface FileRoutesByTo {
   '/admin-login': typeof AdminLoginRoute
   '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
   '/assinatura-pendente': typeof AssinaturaPendenteRoute
+  '/ativar': typeof AtivarRoute
   '/cadastro': typeof CadastroRoute
   '/conta-bloqueada': typeof ContaBloqueadaRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -415,6 +430,7 @@ export interface FileRoutesByTo {
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/config': typeof AdminConfigRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRouteWithChildren
+  '/admin/convites': typeof AdminConvitesRoute
   '/admin/extras': typeof AdminExtrasRoute
   '/admin/financeiro': typeof AdminFinanceiroRoute
   '/admin/pagamentos': typeof AdminPagamentosRoute
@@ -448,6 +464,7 @@ export interface FileRoutesById {
   '/admin-login': typeof AdminLoginRoute
   '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
   '/assinatura-pendente': typeof AssinaturaPendenteRoute
+  '/ativar': typeof AtivarRoute
   '/cadastro': typeof CadastroRoute
   '/conta-bloqueada': typeof ContaBloqueadaRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -470,6 +487,7 @@ export interface FileRoutesById {
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/config': typeof AdminConfigRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRouteWithChildren
+  '/admin/convites': typeof AdminConvitesRoute
   '/admin/extras': typeof AdminExtrasRoute
   '/admin/financeiro': typeof AdminFinanceiroRoute
   '/admin/pagamentos': typeof AdminPagamentosRoute
@@ -503,6 +521,7 @@ export interface FileRouteTypes {
     | '/admin-login'
     | '/aguardando-aprovacao'
     | '/assinatura-pendente'
+    | '/ativar'
     | '/cadastro'
     | '/conta-bloqueada'
     | '/forgot-password'
@@ -525,6 +544,7 @@ export interface FileRouteTypes {
     | '/admin/clientes'
     | '/admin/config'
     | '/admin/configuracoes'
+    | '/admin/convites'
     | '/admin/extras'
     | '/admin/financeiro'
     | '/admin/pagamentos'
@@ -555,6 +575,7 @@ export interface FileRouteTypes {
     | '/admin-login'
     | '/aguardando-aprovacao'
     | '/assinatura-pendente'
+    | '/ativar'
     | '/cadastro'
     | '/conta-bloqueada'
     | '/forgot-password'
@@ -577,6 +598,7 @@ export interface FileRouteTypes {
     | '/admin/clientes'
     | '/admin/config'
     | '/admin/configuracoes'
+    | '/admin/convites'
     | '/admin/extras'
     | '/admin/financeiro'
     | '/admin/pagamentos'
@@ -609,6 +631,7 @@ export interface FileRouteTypes {
     | '/admin-login'
     | '/aguardando-aprovacao'
     | '/assinatura-pendente'
+    | '/ativar'
     | '/cadastro'
     | '/conta-bloqueada'
     | '/forgot-password'
@@ -631,6 +654,7 @@ export interface FileRouteTypes {
     | '/admin/clientes'
     | '/admin/config'
     | '/admin/configuracoes'
+    | '/admin/convites'
     | '/admin/extras'
     | '/admin/financeiro'
     | '/admin/pagamentos'
@@ -664,6 +688,7 @@ export interface RootRouteChildren {
   AdminLoginRoute: typeof AdminLoginRoute
   AguardandoAprovacaoRoute: typeof AguardandoAprovacaoRoute
   AssinaturaPendenteRoute: typeof AssinaturaPendenteRoute
+  AtivarRoute: typeof AtivarRoute
   CadastroRoute: typeof CadastroRoute
   ContaBloqueadaRoute: typeof ContaBloqueadaRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
@@ -743,6 +768,13 @@ declare module '@tanstack/react-router' {
       path: '/cadastro'
       fullPath: '/cadastro'
       preLoaderRoute: typeof CadastroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ativar': {
+      id: '/ativar'
+      path: '/ativar'
+      fullPath: '/ativar'
+      preLoaderRoute: typeof AtivarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/assinatura-pendente': {
@@ -855,6 +887,13 @@ declare module '@tanstack/react-router' {
       path: '/extras'
       fullPath: '/admin/extras'
       preLoaderRoute: typeof AdminExtrasRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/convites': {
+      id: '/admin/convites'
+      path: '/convites'
+      fullPath: '/admin/convites'
+      preLoaderRoute: typeof AdminConvitesRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/configuracoes': {
@@ -1112,6 +1151,7 @@ interface AdminRouteChildren {
   AdminClientesRoute: typeof AdminClientesRoute
   AdminConfigRoute: typeof AdminConfigRoute
   AdminConfiguracoesRoute: typeof AdminConfiguracoesRouteWithChildren
+  AdminConvitesRoute: typeof AdminConvitesRoute
   AdminExtrasRoute: typeof AdminExtrasRoute
   AdminFinanceiroRoute: typeof AdminFinanceiroRoute
   AdminPagamentosRoute: typeof AdminPagamentosRoute
@@ -1127,6 +1167,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminClientesRoute: AdminClientesRoute,
   AdminConfigRoute: AdminConfigRoute,
   AdminConfiguracoesRoute: AdminConfiguracoesRouteWithChildren,
+  AdminConvitesRoute: AdminConvitesRoute,
   AdminExtrasRoute: AdminExtrasRoute,
   AdminFinanceiroRoute: AdminFinanceiroRoute,
   AdminPagamentosRoute: AdminPagamentosRoute,
@@ -1158,6 +1199,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminLoginRoute: AdminLoginRoute,
   AguardandoAprovacaoRoute: AguardandoAprovacaoRoute,
   AssinaturaPendenteRoute: AssinaturaPendenteRoute,
+  AtivarRoute: AtivarRoute,
   CadastroRoute: CadastroRoute,
   ContaBloqueadaRoute: ContaBloqueadaRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,

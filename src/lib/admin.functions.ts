@@ -206,8 +206,10 @@ export const restoreUserAccess = createServerFn({ method: "POST" })
   });
 
 // Aliases legados para compatibilidade retroativa.
-export const blockUserAccount = suspendUserAccess;
-export const unblockUserAccount = restoreUserAccess;
+// Nota: blockUserAccount/unblockUserAccount existiam como aliases de
+// suspendUserAccess/restoreUserAccess, mas nenhuma tela os importava —
+// a UI real (admin.clientes.tsx) já chama suspendUserAccess/restoreUserAccess
+// diretamente. Aliases sem uso removidos (código morto).
 
 // ---------- Criação de cliente pelo administrador -------------------------
 

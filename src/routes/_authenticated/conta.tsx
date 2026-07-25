@@ -1,7 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { createStripePortalSession } from "@/lib/stripe.functions";
 import { ArrowLeft, ShieldCheck, KeyRound, CreditCard, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -12,6 +16,26 @@ export const Route = createFileRoute("/_authenticated/conta")({
 
 function ContaPage() {
   const { user } = useAuth();
+  const openPortal = useServerFn(createStripePortalSession);
+  const [portalBusy, setPortalBusy] = useState(false);
+
+  const handleManageBilling = async () => {
+    setPortalBusy(true);
+    try {
+      const { url } = await openPortal();
+      if (url) {
+        window.location.href = url;
+      } else {
+        toast.error("Não foi possível abrir o portal de cobrança.");
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Não foi possível abrir o portal de cobrança.",
+      );
+    } finally {
+      setPortalBusy(false);
+    }
+  };
 
   const { data: sub } = useQuery({
     queryKey: ["sub-conta", user?.id],
@@ -76,6 +100,19 @@ function ContaPage() {
           <span className="text-sm text-foreground">Alterar plano</span>
           <ChevronRight className="h-4 w-4 text-muted-foreground" />
         </Link>
+        {sub?.status && (
+          <button
+            type="button"
+            onClick={handleManageBilling}
+            disabled={portalBusy}
+            className="relative mt-2.5 flex w-full items-center justify-between rounded-2xl border border-white/[0.06] bg-white/[0.03] px-4 py-3 text-left transition hover:border-primary/25 hover:bg-primary/5 disabled:opacity-60"
+          >
+            <span className="text-sm text-foreground">
+              {portalBusy ? "Abrindo..." : "Gerenciar cobrança e pagamento"}
+            </span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </button>
+        )}
       </section>
 
       <section className="anim-rise anim-rise-2 relative overflow-hidden rounded-3xl border border-white/[0.07] bg-card/60 p-6 shadow-[var(--shadow-float)] backdrop-blur-xl">

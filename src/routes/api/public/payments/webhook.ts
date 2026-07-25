@@ -4,6 +4,7 @@ import { getRequest } from "@tanstack/react-start/server";
 import { getServerPaymentsEnv } from "@/lib/payments-env";
 import { requireServerFeature } from "@/lib/env.server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { checkWebhookRateLimit, recordWebhookAttempt } from "@/lib/rate-limit.server";
 
 type StripeEvent = {
   id: string;
@@ -142,6 +143,19 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
         let rawBody = "";
         let stripeEvent: StripeEvent | null = null;
 
+        const clientIp =
+          currentRequest.headers.get("cf-connecting-ip") ||
+          currentRequest.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+          currentRequest.headers.get("x-real-ip") ||
+          "";
+        const rateLimit = await checkWebhookRateLimit(clientIp);
+        if (!rateLimit.ok) {
+          return new Response("Too many requests", {
+            status: 429,
+            headers: { "Retry-After": String(rateLimit.retryAfter) },
+          });
+        }
+
         try {
           rawBody = await currentRequest.text();
           const signature = currentRequest.headers.get("stripe-signature");
@@ -152,8 +166,10 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
             "Stripe webhook",
           );
           if (!verifyStripeSignature(rawBody, signature, webhookSecret)) {
+            void recordWebhookAttempt(clientIp, false);
             return new Response("Invalid signature", { status: 400 });
           }
+          void recordWebhookAttempt(clientIp, true);
 
           stripeEvent = JSON.parse(rawBody) as StripeEvent;
           await supabaseAdmin.from("payment_webhook_events").upsert(

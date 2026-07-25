@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { SimplePage } from "@/components/simple-page";
+import { checkRateLimit, recordAttempt } from "@/lib/rate-limit.functions";
 
 export const Route = createFileRoute("/cadastro")({
   component: CadastroPage,
@@ -20,14 +21,24 @@ function CadastroPage() {
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const normalizedEmail = email.trim().toLowerCase();
     setBusy(true);
     try {
+      const limit = await checkRateLimit({ data: { action: "signup", email: normalizedEmail } });
+      if (!limit.ok) {
+        toast.error(limit.message);
+        return;
+      }
+
       const { data, error } = await supabase.auth.signUp({
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
         password,
         options: {
           data: { full_name: fullName.trim() },
         },
+      });
+      void recordAttempt({
+        data: { action: "signup", email: normalizedEmail, success: !error },
       });
       if (error) throw error;
       toast.success("Cadastro enviado.");

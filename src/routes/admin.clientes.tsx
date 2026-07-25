@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
@@ -22,6 +22,7 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   Search,
+  UserPlus,
   Eye,
   ShieldOff,
   ShieldCheck,
@@ -406,6 +407,12 @@ function ClientesPage() {
           <p className="mt-1 text-xs text-muted-foreground">
             Somente visualização e ações de fluxo. Dados cadastrais são gerenciados em seus módulos.
           </p>
+          <Link
+            to="/admin/convites"
+            className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+          >
+            <UserPlus className="h-3.5 w-3.5" /> Convidar ou criar cliente manualmente
+          </Link>
         </div>
         <div className="flex w-full items-center gap-2 sm:w-auto">
           <div className="relative flex-1 sm:w-72">

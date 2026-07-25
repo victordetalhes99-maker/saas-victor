@@ -25,6 +25,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { STAFF_ROLES, hasAnyRole } from "@/lib/rbac";
+import { checkRateLimit, recordAttempt } from "@/lib/rate-limit.functions";
 
 export const Route = createFileRoute("/admin-login")({
   component: AdminLoginPage,
@@ -86,17 +87,28 @@ function AdminLoginPage() {
     const normalizedEmail = email.trim().toLowerCase();
     setBusy(true);
     try {
+      const limit = await checkRateLimit({ data: { action: "login", email: normalizedEmail } });
+      if (!limit.ok) {
+        setError(limit.message);
+        toast.error(limit.message);
+        return;
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email: normalizedEmail,
         password,
       });
-      if (error || !data.user) throw error ?? new Error("auth");
+      if (error || !data.user) {
+        void recordAttempt({ data: { action: "login", email: normalizedEmail, success: false } });
+        throw error ?? new Error("auth");
+      }
 
       const { data: roles, error: roleError } = await (supabase as any).rpc("list_user_roles", {
         _user_id: data.user.id,
       });
 
       if (roleError) {
+        void recordAttempt({ data: { action: "login", email: normalizedEmail, success: false } });
         await supabase.auth.signOut();
         throw new Error(roleError.message);
       }
@@ -107,12 +119,14 @@ function AdminLoginPage() {
           STAFF_ROLES,
         )
       ) {
+        void recordAttempt({ data: { action: "login", email: normalizedEmail, success: false } });
         await supabase.auth.signOut();
         setError("Esta conta não tem acesso de administrador.");
         toast.error("Esta conta não tem acesso de administrador.");
         return;
       }
 
+      void recordAttempt({ data: { action: "login", email: normalizedEmail, success: true } });
       toast.success("Bem-vindo, administrador.");
       nav({ to: "/admin", replace: true });
     } catch (err) {

@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { SimplePage } from "@/components/simple-page";
+import { checkRateLimit, recordAttempt } from "@/lib/rate-limit.functions";
 
 export const Route = createFileRoute("/forgot-password")({
   component: ForgotPasswordPage,
@@ -20,11 +21,23 @@ function ForgotPasswordPage() {
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const normalizedEmail = email.trim().toLowerCase();
     setBusy(true);
     try {
+      const limit = await checkRateLimit({
+        data: { action: "forgot_password", email: normalizedEmail },
+      });
+      if (!limit.ok) {
+        toast.error(limit.message);
+        return;
+      }
+
       const redirectTo = `${window.location.origin}/reset-password`;
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+      const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
         redirectTo,
+      });
+      void recordAttempt({
+        data: { action: "forgot_password", email: normalizedEmail, success: !error },
       });
       if (error) throw error;
       toast.success("E-mail enviado.");

@@ -1,4 +1,11 @@
-import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from "node:crypto";
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  createHmac,
+  randomBytes,
+  timingSafeEqual,
+} from "node:crypto";
 import { requireServerFeature } from "./env.server";
 
 function deriveKey(secret: string) {
@@ -26,7 +33,9 @@ export function signPayload(payload: string) {
 }
 
 export function verifySignedPayload(payload: string, signature: string) {
-  return signPayload(payload) === signature;
+  const expected = Buffer.from(signPayload(payload));
+  const actual = Buffer.from(signature);
+  return expected.length === actual.length && timingSafeEqual(expected, actual);
 }
 
 export function encryptSecret(value: string) {

@@ -6,7 +6,6 @@ const publicEnvSchema = z.object({
   VITE_SUPABASE_ANON_KEY: z.string().min(1),
   VITE_STRIPE_PUBLISHABLE_KEY: z.string().min(1).optional(),
   VITE_SUPPORT_WHATSAPP_NUMBER: z.string().min(8).optional(),
-  VITE_TURNSTILE_SITE_KEY: z.string().min(1).optional(),
 });
 
 type PublicEnv = z.infer<typeof publicEnvSchema>;
@@ -21,7 +20,6 @@ function pickPublicEnv() {
     VITE_SUPABASE_ANON_KEY: env.VITE_SUPABASE_ANON_KEY ?? env.VITE_SUPABASE_PUBLISHABLE_KEY,
     VITE_STRIPE_PUBLISHABLE_KEY: env.VITE_STRIPE_PUBLISHABLE_KEY,
     VITE_SUPPORT_WHATSAPP_NUMBER: env.VITE_SUPPORT_WHATSAPP_NUMBER,
-    VITE_TURNSTILE_SITE_KEY: env.VITE_TURNSTILE_SITE_KEY,
   };
 }
 

@@ -6,6 +6,7 @@ import {
   createAtomicBookingStore,
   createBookingAtomically,
   hasActiveAppointmentCollision,
+  validateBookingWindow,
   validateVehicleOwnership,
 } from "../src/lib/appointment-rules";
 
@@ -102,4 +103,36 @@ test("duas requisicoes simultaneas aceitam uma e rejeitam outra", async () => {
   assert.equal(accepted.length, 1);
   assert.equal(rejected.length, 1);
   assert.equal(rejected[0]?.reason, "slot_conflict");
+});
+
+test("modo de emergencia bloqueia novos agendamentos", () => {
+  const result = validateBookingWindow("2026-07-20T12:00:00.000Z", BASE, {
+    emergencyMode: true,
+    minLeadMinutes: 0,
+  });
+  assert.deepEqual(result, { ok: false, reason: "emergency_mode" });
+});
+
+test("horario no passado e rejeitado mesmo sem modo de emergencia", () => {
+  const result = validateBookingWindow("2026-07-20T08:00:00.000Z", BASE, {
+    emergencyMode: false,
+    minLeadMinutes: 0,
+  });
+  assert.deepEqual(result, { ok: false, reason: "past" });
+});
+
+test("antecedencia minima rejeita horario muito proximo", () => {
+  const result = validateBookingWindow("2026-07-20T09:10:00.000Z", BASE, {
+    emergencyMode: false,
+    minLeadMinutes: 30,
+  });
+  assert.deepEqual(result, { ok: false, reason: "lead_time" });
+});
+
+test("antecedencia minima aceita horario suficientemente distante", () => {
+  const result = validateBookingWindow("2026-07-20T09:45:00.000Z", BASE, {
+    emergencyMode: false,
+    minLeadMinutes: 30,
+  });
+  assert.deepEqual(result, { ok: true });
 });

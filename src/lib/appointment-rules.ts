@@ -70,6 +70,39 @@ export function calculateExtraTotals(planDurationMinutes: number, extras: ExtraL
   };
 }
 
+export type BookingWindowRules = {
+  emergencyMode: boolean;
+  minLeadMinutes: number;
+};
+
+export type BookingWindowResult =
+  { ok: true } | { ok: false; reason: "emergency_mode" | "past" | "lead_time" };
+
+/**
+ * Mirrors the checks added to create_client_appointment in
+ * supabase/migrations/20260725000000_enforce_booking_rules.sql:
+ * emergency_mode blocks all new bookings, and min_booking_lead_minutes
+ * requires a minimum gap between "now" and the requested slot. Both
+ * settings existed in the admin UI/schema before but were never enforced.
+ */
+export function validateBookingWindow(
+  scheduledAt: string | Date,
+  now: string | Date,
+  rules: BookingWindowRules,
+): BookingWindowResult {
+  if (rules.emergencyMode) return { ok: false, reason: "emergency_mode" };
+
+  const scheduledMs = new Date(scheduledAt).getTime();
+  const nowMs = new Date(now).getTime();
+  if (scheduledMs <= nowMs) return { ok: false, reason: "past" };
+
+  if (rules.minLeadMinutes > 0 && scheduledMs < nowMs + rules.minLeadMinutes * 60_000) {
+    return { ok: false, reason: "lead_time" };
+  }
+
+  return { ok: true };
+}
+
 export function validateVehicleOwnership(
   ownerUserId: string,
   vehicleUserId: string | null | undefined,

@@ -19,7 +19,6 @@ const serverEnvSchema = z.object({
   STRIPE_SUCCESS_URL: z.string().url().optional(),
   STRIPE_CANCEL_URL: z.string().url().optional(),
   STRIPE_PORTAL_RETURN_URL: z.string().url().optional(),
-  SUBSCRIPTION_GRACE_PERIOD_DAYS: z.coerce.number().int().min(0).default(3),
   RESEND_API_KEY: z.string().min(1).optional(),
   EMAIL_FROM: z.string().min(3).optional(),
   EMAIL_REPLY_TO: z.string().min(3).optional(),
@@ -34,7 +33,6 @@ const serverEnvSchema = z.object({
     .min(1)
     .refine(isValidEncryptionKey, "must be 32 bytes encoded as hex or base64/base64url")
     .optional(),
-  TURNSTILE_SECRET_KEY: z.string().min(1).optional(),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   SENTRY_DSN: z.string().url().optional(),
 });

@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getRequest } from "@tanstack/react-start/server";
-import { createClient } from "@supabase/supabase-js";
-import { getServerEnv } from "@/lib/env.server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { ForbiddenError, UnauthorizedError, requireAdminRequest } from "@/lib/authz.server";
 
 export const Route = createFileRoute("/api/google-calendar/disconnect")({
   server: {
@@ -11,17 +10,20 @@ export const Route = createFileRoute("/api/google-calendar/disconnect")({
         const currentRequest = request ?? getRequest();
         if (!currentRequest) return new Response("Request unavailable", { status: 500 });
 
-        const authHeader = currentRequest.headers.get("authorization");
-        const bearer = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-        if (!bearer) return new Response("Unauthorized", { status: 401 });
-
-        const env = getServerEnv();
-        const client = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
-          auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
-        });
-        const { data } = await client.auth.getUser(bearer);
-        const userId = data.user?.id;
-        if (!userId) return new Response("Unauthorized", { status: 401 });
+        // SECURITY: previously any authenticated user (including a plain
+        // client account) could disconnect the business's shared Google
+        // Calendar integration. This is a staff-only action.
+        try {
+          await requireAdminRequest(currentRequest);
+        } catch (error) {
+          if (error instanceof UnauthorizedError) {
+            return new Response("Unauthorized", { status: 401 });
+          }
+          if (error instanceof ForbiddenError) {
+            return new Response("Admin access required", { status: 403 });
+          }
+          throw error;
+        }
 
         const { error } = await supabaseAdmin
           .from("integration_connections")
