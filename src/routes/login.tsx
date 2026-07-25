@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/club/Logo";
 import { checkRateLimit, recordAttempt } from "@/lib/rate-limit.functions";
+import { STAFF_ROLES, hasAnyRole } from "@/lib/rbac";
 import {
   UserRound,
   ArrowLeft,
@@ -52,7 +53,12 @@ function LoginPage() {
 
   useEffect(() => {
     if (!loading && user) {
-      void navigate({ to: isAdmin ? "/admin" : "/dashboard", replace: true });
+      if (isAdmin) {
+        void supabase.auth.signOut();
+        void navigate({ to: "/admin-login", replace: true });
+        return;
+      }
+      void navigate({ to: "/dashboard", replace: true });
     }
   }, [loading, user, isAdmin, navigate]);
 
@@ -87,10 +93,17 @@ function LoginPage() {
         _user_id: data.user.id,
       });
       const roleNames = ((roles ?? []) as Array<{ role: string }>).map((r) => r.role);
-      const target =
-        roleNames.includes("admin") || roleNames.includes("owner") ? "/admin" : "/dashboard";
+
+      if (hasAnyRole(roleNames, STAFF_ROLES)) {
+        await supabase.auth.signOut();
+        const msg = "Esta conta é de administrador. Acesse pelo painel administrativo.";
+        setError(msg);
+        toast.error(msg);
+        return;
+      }
+
       toast.success("Login realizado.");
-      void navigate({ to: target, replace: true });
+      void navigate({ to: "/dashboard", replace: true });
     } catch {
       const msg = "E-mail ou senha inválidos.";
       setError(msg);
