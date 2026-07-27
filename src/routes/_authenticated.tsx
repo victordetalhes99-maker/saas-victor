@@ -1,9 +1,9 @@
 import { createFileRoute, Outlet, useNavigate, Link, useLocation } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Logo } from "@/components/club/Logo";
 import { UserProfileDrawer } from "@/components/user-profile-drawer";
-import { Calendar, Car, Home, History } from "lucide-react";
+import { Calendar, Car, Home, History, Loader2, RefreshCw } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated")({
   component: AuthLayout,
@@ -16,12 +16,52 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 const SUBSCRIPTION_REQUIRED_PREFIXES = ["/dashboard", "/agendar", "/veiculos", "/historico"];
+const MAX_CONFIRM_ATTEMPTS = 8; // ~20s de polling antes de admitir que está demorando
 
 function AuthLayout() {
-  const { user, loading, isAdmin, profileStatus, hasActiveSubscription, subscriptionLoading } =
-    useAuth();
+  const {
+    user,
+    loading,
+    isAdmin,
+    profileStatus,
+    hasActiveSubscription,
+    subscriptionLoading,
+    refreshSubscription,
+  } = useAuth();
   const nav = useNavigate();
   const loc = useLocation();
+
+  // O Stripe redireciona de volta pra cá com ?checkout=success assim que o
+  // pagamento é concluído no navegador — mas o webhook que confirma de
+  // verdade e libera o acesso roda de forma assíncrona e pode levar alguns
+  // segundos. Sem isso, quem acabou de pagar era jogado direto pra tela de
+  // "assinatura pendente", como se nada tivesse acontecido.
+  const isCheckoutReturn =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("checkout") === "success";
+  const [confirming, setConfirming] = useState(isCheckoutReturn);
+  const [attempts, setAttempts] = useState(0);
+  const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!isCheckoutReturn || hasActiveSubscription || subscriptionLoading) return;
+    if (attempts >= MAX_CONFIRM_ATTEMPTS) return;
+    pollRef.current = setTimeout(async () => {
+      await refreshSubscription();
+      setAttempts((a) => a + 1);
+    }, 2500);
+    return () => {
+      if (pollRef.current) clearTimeout(pollRef.current);
+    };
+  }, [isCheckoutReturn, hasActiveSubscription, subscriptionLoading, attempts, refreshSubscription]);
+
+  useEffect(() => {
+    if (hasActiveSubscription && confirming) {
+      setConfirming(false);
+      // Limpa o ?checkout=success da URL para não reiniciar o polling num F5.
+      void nav({ to: loc.pathname, replace: true });
+    }
+  }, [hasActiveSubscription, confirming, nav, loc.pathname]);
 
   useEffect(() => {
     if (loading) return;
@@ -51,6 +91,9 @@ function AuthLayout() {
       return;
     }
     if (subscriptionLoading) return;
+    // Enquanto estamos confirmando um pagamento recém-concluído, não
+    // redireciona pra assinatura-pendente — deixa o polling terminar.
+    if (confirming && attempts < MAX_CONFIRM_ATTEMPTS) return;
     const needsSubscription = SUBSCRIPTION_REQUIRED_PREFIXES.some(
       (p) => loc.pathname === p || loc.pathname.startsWith(p + "/"),
     );
@@ -67,6 +110,8 @@ function AuthLayout() {
     hasActiveSubscription,
     loc.pathname,
     nav,
+    confirming,
+    attempts,
   ]);
 
   if (loading || !user) {
@@ -75,6 +120,10 @@ function AuthLayout() {
         Carregando...
       </div>
     );
+  }
+
+  if (confirming && !hasActiveSubscription) {
+    return <ConfirmingPayment attempts={attempts} onRetry={() => void refreshSubscription()} />;
   }
 
   const navItems = [
@@ -159,6 +208,54 @@ function AuthLayout() {
           })}
         </div>
       </nav>
+    </div>
+  );
+}
+
+function ConfirmingPayment({ attempts, onRetry }: { attempts: number; onRetry: () => void }) {
+  const timedOut = attempts >= MAX_CONFIRM_ATTEMPTS;
+  return (
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-5 text-foreground">
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute inset-0 bg-[linear-gradient(135deg,oklch(0.10_0.02_200)_0%,oklch(0.13_0.015_250)_45%,oklch(0.16_0.03_170)_100%)]" />
+        <div className="absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-[110px]" />
+      </div>
+      <div className="anim-rise w-full max-w-sm space-y-5 rounded-3xl border border-white/[0.08] bg-white/[0.03] p-8 text-center backdrop-blur-xl">
+        <div className="mx-auto grid h-14 w-14 place-items-center rounded-full border border-primary/25 bg-primary/10 text-primary">
+          {timedOut ? (
+            <RefreshCw className="h-6 w-6" />
+          ) : (
+            <Loader2 className="h-6 w-6 animate-spin" />
+          )}
+        </div>
+        {timedOut ? (
+          <>
+            <div className="space-y-1.5">
+              <h1 className="text-lg font-semibold text-foreground">
+                Está demorando mais que o esperado
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Seu pagamento foi recebido pelo Stripe, mas a confirmação no sistema ainda não
+                chegou. Isso pode levar mais alguns minutos.
+              </p>
+            </div>
+            <button
+              onClick={onRetry}
+              className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Verificar novamente
+            </button>
+          </>
+        ) : (
+          <div className="space-y-1.5">
+            <h1 className="text-lg font-semibold text-foreground">Confirmando seu pagamento...</h1>
+            <p className="text-sm text-muted-foreground">
+              Estamos aguardando a confirmação do Stripe. Isso leva só alguns segundos.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

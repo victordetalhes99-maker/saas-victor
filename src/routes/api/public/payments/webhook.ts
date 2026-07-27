@@ -59,7 +59,31 @@ async function fetchStripeSubscription(subscriptionId: string) {
     current_period_end?: number;
     cancel_at_period_end?: boolean;
     items?: { data?: Array<{ price?: { id?: string } }> };
+    metadata?: Record<string, string>;
   };
+}
+
+// Traduz o status de assinatura do Stripe para o enum interno.
+// IMPORTANTE: nunca escreve em profiles.status aqui — esse campo pertence
+// exclusivamente ao fluxo de aprovação cadastral (feito pela administração
+// em /admin/solicitacoes). Situação financeira vive só em `subscriptions`.
+function mapStripeStatus(stripeStatus: string | undefined): string {
+  switch (stripeStatus) {
+    case "trialing":
+      return "trialing";
+    case "past_due":
+      return "past_due";
+    case "canceled":
+      return "cancelled";
+    case "unpaid":
+      return "unpaid";
+    case "incomplete":
+      return "incomplete";
+    case "active":
+      return "active";
+    default:
+      return "pending";
+  }
 }
 
 async function upsertSubscriptionFromStripe(event: StripeEvent, statusHint?: string) {
@@ -67,30 +91,27 @@ async function upsertSubscriptionFromStripe(event: StripeEvent, statusHint?: str
   const subscriptionId = String(object.subscription ?? object.id ?? "");
   const customerId =
     typeof object.customer === "string" ? object.customer : (object.customer?.id ?? null);
-  const planId = String(object.metadata?.plan_id ?? "");
-  const userId = String(object.metadata?.user_id ?? "");
 
   const stripeSubscription =
     subscriptionId && event.type !== "customer.subscription.deleted"
       ? await fetchStripeSubscription(subscriptionId)
       : null;
 
+  // metadata pode vir do evento direto (checkout session / subscription) ou,
+  // em eventos de invoice, só está disponível na assinatura vinculada.
+  const metadata = (object.metadata ?? stripeSubscription?.metadata ?? {}) as Record<
+    string,
+    string
+  >;
+  const planId = String(metadata.plan_id ?? "");
+  const userId = String(metadata.user_id ?? "");
+
   const currentPeriodEnd =
     stripeSubscription?.current_period_end && Number.isFinite(stripeSubscription.current_period_end)
       ? new Date(stripeSubscription.current_period_end * 1000).toISOString()
       : null;
 
-  const nextStatus =
-    statusHint ??
-    (stripeSubscription?.status === "trialing"
-      ? "trialing"
-      : stripeSubscription?.status === "past_due"
-        ? "past_due"
-        : stripeSubscription?.status === "canceled"
-          ? "cancelled"
-          : stripeSubscription?.status === "active"
-            ? "active"
-            : "pending");
+  const nextStatus = statusHint ?? mapStripeStatus(stripeSubscription?.status);
 
   if (!userId && !customerId && !subscriptionId) return;
 
@@ -100,7 +121,7 @@ async function upsertSubscriptionFromStripe(event: StripeEvent, statusHint?: str
     stripe_customer_id: customerId,
     stripe_subscription_id: subscriptionId || null,
     stripe_price_id:
-      stripeSubscription?.items?.data?.[0]?.price?.id ?? object.metadata?.stripe_price_id ?? null,
+      stripeSubscription?.items?.data?.[0]?.price?.id ?? metadata.stripe_price_id ?? null,
     environment: getServerPaymentsEnv(),
     status: nextStatus,
     current_period_end: currentPeriodEnd,
@@ -109,27 +130,113 @@ async function upsertSubscriptionFromStripe(event: StripeEvent, statusHint?: str
     next_due_date: currentPeriodEnd,
   };
 
-  const query = subscriptionId
-    ? supabaseAdmin
-        .from("subscriptions")
-        .update(payload as any)
-        .eq("stripe_subscription_id", subscriptionId)
-    : supabaseAdmin
-        .from("subscriptions")
-        .update(payload as any)
-        .eq("stripe_customer_id", customerId);
-  const { error } = await query;
-  if (error) throw error;
+  // Tenta casar por stripe_subscription_id (caso comum); se a assinatura
+  // ainda não tiver esse id gravado (ex.: linha criada como "pending" no
+  // momento do checkout, antes do Stripe confirmar), casa por customer.
+  let matched = false;
+  if (subscriptionId) {
+    const { data, error } = await supabaseAdmin
+      .from("subscriptions")
+      .update(payload as any)
+      .eq("stripe_subscription_id", subscriptionId)
+      .select("id");
+    if (error) throw error;
+    matched = (data?.length ?? 0) > 0;
+  }
+  if (!matched && customerId) {
+    const { data, error } = await supabaseAdmin
+      .from("subscriptions")
+      .update(payload as any)
+      .eq("stripe_customer_id", customerId)
+      .is("stripe_subscription_id", null)
+      .select("id");
+    if (error) throw error;
+    matched = (data?.length ?? 0) > 0;
+  }
+  // Nenhuma linha "pending" para casar (ex.: assinatura criada fora do
+  // fluxo normal de checkout) — cria o registro para não perder o evento.
+  if (!matched && userId) {
+    const { error } = await supabaseAdmin.from("subscriptions").insert(payload as any);
+    if (error) throw error;
+  }
 
-  if (userId) {
+  // Mantém o stripe_customer_id no perfil para o Customer Portal funcionar.
+  // NUNCA grava aqui o status de aprovação cadastral (profiles.status) —
+  // isso é responsabilidade exclusiva do fluxo administrativo.
+  if (userId && customerId) {
     await supabaseAdmin
       .from("profiles")
-      .update({
-        stripe_customer_id: customerId,
-        status: nextStatus === "active" ? "active" : "pending",
-      })
+      .update({ stripe_customer_id: customerId })
       .eq("id", userId);
   }
+
+  return { userId, subscriptionId, customerId };
+}
+
+// Registra o pagamento de fato (fatura paga ou recusada) na tabela
+// `payments`, usada pela tela administrativa Pagamentos/Financeiro.
+// Idempotente via unique index em stripe_invoice_id (ver migration).
+async function recordPaymentFromInvoice(event: StripeEvent, status: "paid" | "failed") {
+  const invoice = event.data.object;
+  const invoiceId = String(invoice.id ?? "");
+  if (!invoiceId) return;
+
+  const subscriptionId = invoice.subscription ? String(invoice.subscription) : null;
+  const customerId =
+    typeof invoice.customer === "string" ? invoice.customer : (invoice.customer?.id ?? null);
+
+  // Descobre o cliente e a assinatura local a partir do que já sincronizamos.
+  let userId: string | null = null;
+  let localSubscriptionId: string | null = null;
+  if (subscriptionId) {
+    const { data } = await supabaseAdmin
+      .from("subscriptions")
+      .select("id, user_id")
+      .eq("stripe_subscription_id", subscriptionId)
+      .maybeSingle();
+    if (data) {
+      userId = data.user_id;
+      localSubscriptionId = data.id;
+    }
+  }
+  if (!userId && customerId) {
+    const { data } = await supabaseAdmin
+      .from("profiles")
+      .select("id")
+      .eq("stripe_customer_id", customerId)
+      .maybeSingle();
+    userId = data?.id ?? null;
+  }
+  if (!userId) {
+    console.warn("[stripe-webhook] payment sem cliente identificável", invoiceId);
+    return;
+  }
+
+  const amountCents = Number(status === "paid" ? invoice.amount_paid : invoice.amount_due) || 0;
+  const paidAtUnix = invoice.status_transitions?.paid_at;
+
+  const { error } = await supabaseAdmin.from("payments").upsert(
+    {
+      user_id: userId,
+      subscription_id: localSubscriptionId,
+      amount: amountCents / 100,
+      currency: String(invoice.currency ?? "brl"),
+      environment: getServerPaymentsEnv(),
+      status,
+      stripe_event_id: event.id,
+      stripe_invoice_id: invoiceId,
+      stripe_payment_intent_id:
+        typeof invoice.payment_intent === "string" ? invoice.payment_intent : null,
+      paid_at:
+        status === "paid"
+          ? paidAtUnix
+            ? new Date(paidAtUnix * 1000).toISOString()
+            : new Date().toISOString()
+          : null,
+    } as any,
+    { onConflict: "stripe_invoice_id" },
+  );
+  if (error) throw error;
 }
 
 export const Route = createFileRoute("/api/public/payments/webhook")({
@@ -172,6 +279,21 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
           void recordWebhookAttempt(clientIp, true);
 
           stripeEvent = JSON.parse(rawBody) as StripeEvent;
+
+          // --- Idempotência real -------------------------------------------------
+          // Se este event.id já foi processado com sucesso antes (reentrega do
+          // Stripe, replay manual, ou o próprio Stripe reenviando por não ter
+          // recebido nosso 200 a tempo), responde OK sem reprocessar nada.
+          const { data: existing } = await supabaseAdmin
+            .from("payment_webhook_events")
+            .select("status")
+            .eq("event_id", stripeEvent.id)
+            .maybeSingle();
+
+          if (existing?.status === "processed") {
+            return Response.json({ received: true, idempotent: true });
+          }
+
           await supabaseAdmin.from("payment_webhook_events").upsert(
             {
               provider: "stripe",
@@ -186,7 +308,10 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
 
           switch (stripeEvent.type) {
             case "checkout.session.completed":
-              await upsertSubscriptionFromStripe(stripeEvent, "active");
+              // Vincula customer/subscription/plano. NÃO força "active": o
+              // status real vem da assinatura consultada direto no Stripe
+              // (ou fica "pending" até o invoice.paid confirmar o pagamento).
+              await upsertSubscriptionFromStripe(stripeEvent);
               break;
             case "customer.subscription.created":
             case "customer.subscription.updated":
@@ -195,11 +320,17 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
             case "customer.subscription.deleted":
               await upsertSubscriptionFromStripe(stripeEvent, "cancelled");
               break;
+            case "invoice.paid":
             case "invoice.payment_succeeded":
               await upsertSubscriptionFromStripe(stripeEvent, "active");
+              await recordPaymentFromInvoice(stripeEvent, "paid");
               break;
             case "invoice.payment_failed":
               await upsertSubscriptionFromStripe(stripeEvent, "past_due");
+              await recordPaymentFromInvoice(stripeEvent, "failed");
+              break;
+            case "invoice.payment_action_required":
+              await upsertSubscriptionFromStripe(stripeEvent, "incomplete");
               break;
             default:
               break;

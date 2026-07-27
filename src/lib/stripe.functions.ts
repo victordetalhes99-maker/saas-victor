@@ -125,15 +125,41 @@ export const createStripeCheckout = createServerFn({ method: "POST" })
 
     const session = await stripeFetch("/v1/checkout/sessions", { method: "POST", body });
 
-    await supabase.from("subscriptions").insert({
-      user_id: userId,
-      plan_id: plan.id,
-      status: "pending",
-      stripe_customer_id: customerId,
-      stripe_price_id: plan.stripe_price_id,
-      stripe_checkout_url: String(session.url ?? ""),
-      environment: getServerPaymentsEnv(),
-    });
+    // Evita duplicar linhas de assinatura quando o cliente tenta o checkout
+    // mais de uma vez (ex.: abandonou e voltou). Reaproveita uma tentativa
+    // "pending" já existente para o mesmo plano em vez de inserir outra.
+    const { data: existingPending } = await supabase
+      .from("subscriptions")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("plan_id", plan.id)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (existingPending) {
+      await supabase
+        .from("subscriptions")
+        .update({
+          stripe_customer_id: customerId,
+          stripe_price_id: plan.stripe_price_id,
+          stripe_checkout_url: String(session.url ?? ""),
+          environment: getServerPaymentsEnv(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingPending.id);
+    } else {
+      await supabase.from("subscriptions").insert({
+        user_id: userId,
+        plan_id: plan.id,
+        status: "pending",
+        stripe_customer_id: customerId,
+        stripe_price_id: plan.stripe_price_id,
+        stripe_checkout_url: String(session.url ?? ""),
+        environment: getServerPaymentsEnv(),
+      });
+    }
 
     return { url: String(session.url ?? "") };
   });
