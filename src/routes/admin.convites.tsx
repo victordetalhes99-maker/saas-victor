@@ -68,6 +68,8 @@ const STATUS_TONE: Record<string, string> = {
   expired: "border-white/10 bg-white/5 text-muted-foreground",
 };
 
+const fmtMoney = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
 function ConvitesPage() {
   const qc = useQueryClient();
   const createFn = useServerFn(createClientByAdmin);
@@ -77,7 +79,9 @@ function ConvitesPage() {
 
   const { data: plans } = useQuery({
     queryKey: ["admin-convites-plans"],
-    queryFn: async () => (await supabase.from("plans").select("id, name")).data ?? [],
+    queryFn: async () =>
+      (await supabase.from("plans").select("id, name, monthly_price, washes_per_month, benefits"))
+        .data ?? [],
   });
 
   const { data: invitesData, isLoading } = useQuery({
@@ -156,6 +160,11 @@ function ConvitesPage() {
 
   const invites = useMemo(() => invitesData?.invites ?? [], [invitesData]);
 
+  const selectedPlan = useMemo(
+    () => (plans ?? []).find((p) => p.id === form.planId) ?? null,
+    [plans, form.planId],
+  );
+
   const stats = useMemo(() => {
     const pending = invites.filter((i: any) => i.effective_status === "pending").length;
     const used = invites.filter((i: any) => i.effective_status === "used").length;
@@ -198,7 +207,7 @@ function ConvitesPage() {
         />
       </div>
 
-      <Card className="rounded-3xl border-white/10 bg-card p-6">
+      <Card id="criar-cliente-card" className="rounded-3xl border-white/10 bg-card p-6">
         <div className="mb-5 flex items-center gap-2.5">
           <span className="grid h-9 w-9 place-items-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
             <UserPlus className="h-4 w-4" />
@@ -210,9 +219,14 @@ function ConvitesPage() {
             </p>
           </div>
         </div>
+        <p className="mb-4 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
+          O cadastro manual aprova o cliente diretamente, sem passar pelo fluxo público de cadastro
+          e aprovação.
+        </p>
         <form onSubmit={submitCreate} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <FieldWithIcon icon={User} label="Nome completo">
             <Input
+              id="cliente-fullname-input"
               placeholder="Nome do cliente"
               value={form.fullName}
               onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))}
@@ -256,6 +270,32 @@ function ConvitesPage() {
               </SelectContent>
             </Select>
           </FieldWithIcon>
+
+          {selectedPlan && (
+            <div className="rounded-xl border border-primary/20 bg-primary/[0.04] p-3 sm:col-span-2 lg:col-span-4">
+              <p className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                <Package className="h-3.5 w-3.5 text-primary" />
+                {selectedPlan.name}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {fmtMoney(Number(selectedPlan.monthly_price))}/mês · {selectedPlan.washes_per_month}{" "}
+                lavagens por mês
+              </p>
+              {selectedPlan.benefits?.length > 0 && (
+                <ul className="mt-1.5 flex flex-wrap gap-1.5">
+                  {selectedPlan.benefits.slice(0, 4).map((b: string) => (
+                    <li
+                      key={b}
+                      className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[10px] text-muted-foreground"
+                    >
+                      {b}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
           <Button
             type="submit"
             disabled={creating}
@@ -294,12 +334,24 @@ function ConvitesPage() {
         )}
 
         {!isLoading && invites.length === 0 && (
-          <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-white/10 py-10 text-center">
+          <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-white/10 bg-[radial-gradient(60%_80%_at_50%_0%,oklch(0.85_0.22_145/0.05),transparent)] py-10 text-center">
             <Mail className="h-6 w-6 text-muted-foreground/50" />
             <p className="text-sm font-medium text-foreground">Nenhum convite enviado ainda</p>
             <p className="text-xs text-muted-foreground">
               Convites aparecem aqui assim que você criar um cliente com plano vinculado.
             </p>
+            <button
+              type="button"
+              onClick={() => {
+                document
+                  .getElementById("criar-cliente-card")
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                document.getElementById("cliente-fullname-input")?.focus();
+              }}
+              className="mt-2 rounded-full border border-primary/25 bg-primary/10 px-3.5 py-1.5 text-xs font-medium text-primary transition hover:bg-primary/20"
+            >
+              Criar o primeiro cliente
+            </button>
           </div>
         )}
 

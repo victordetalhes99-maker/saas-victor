@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { ArrowLeft, Save, User as UserIcon } from "lucide-react";
+import { AvatarUploader } from "@/components/AvatarUploader";
 
 export const Route = createFileRoute("/_authenticated/perfil")({
   component: PerfilPage,
@@ -23,13 +24,14 @@ function PerfilPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("full_name, phone, email")
+        .select("full_name, phone, email, avatar_url")
         .eq("id", user!.id)
         .maybeSingle();
       return data as {
         full_name: string | null;
         phone: string | null;
         email: string | null;
+        avatar_url: string | null;
       } | null;
     },
   });
@@ -93,6 +95,23 @@ function PerfilPage() {
             </h2>
           </div>
         </div>
+
+        {user?.id && (
+          <div className="relative mt-6">
+            <AvatarUploader
+              userId={user.id}
+              value={profile?.avatar_url}
+              fallbackInitials={(fullName || profile?.email || "?")
+                .trim()
+                .split(/\s+/)
+                .slice(0, 2)
+                .map((p) => p[0])
+                .join("")
+                .toUpperCase()}
+              onChange={() => qc.invalidateQueries({ queryKey: ["profile-edit"] })}
+            />
+          </div>
+        )}
 
         <form
           className="relative mt-6 space-y-4"

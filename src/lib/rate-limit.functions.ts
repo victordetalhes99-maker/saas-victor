@@ -10,7 +10,7 @@ import { getRequest, getRequestHeader } from "@tanstack/react-start/server";
  * Ações suportadas (livre — quem chama define): "login", "signup", "forgot_password", "webhook".
  */
 
-type Action = "login" | "signup" | "forgot_password" | "webhook";
+type Action = "login" | "signup" | "forgot_password" | "webhook" | "email_confirm_resend";
 
 function getClientIp(): string {
   try {
@@ -39,6 +39,7 @@ const LIMITS: Record<Action, { window: number; maxIp: number; maxEmail: number }
   signup: { window: 60, maxIp: 10, maxEmail: 3 },
   forgot_password: { window: 60, maxIp: 10, maxEmail: 4 },
   webhook: { window: 5, maxIp: 200, maxEmail: 0 },
+  email_confirm_resend: { window: 15, maxIp: 12, maxEmail: 5 },
 };
 
 export type RateLimitResult = { ok: true } | { ok: false; retryAfter: number; message: string };

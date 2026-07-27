@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getClientPaymentsEnv } from "@/lib/payments-env";
 import { Card } from "@/components/ui/card";
 import {
   Users,
@@ -12,6 +13,9 @@ import {
   Wallet,
   Receipt,
   Scale,
+  AlertTriangle,
+  Package,
+  Sparkles,
 } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
@@ -74,32 +78,52 @@ function RelatoriosPage() {
       const startISO = start.toISOString();
       const endISO = end.toISOString();
 
-      const [newClients, appts, payments, expenses] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("id", { count: "exact", head: true })
-          .gte("created_at", startISO)
-          .lte("created_at", endISO),
-        supabase
-          .from("appointments")
-          .select("id, status, scheduled_at")
-          .gte("scheduled_at", startISO)
-          .lte("scheduled_at", endISO),
-        supabase
-          .from("payments")
-          .select("amount, status, created_at")
-          .gte("created_at", startISO)
-          .lte("created_at", endISO),
-        supabase
-          .from("expenses")
-          .select("amount")
-          .gte("expense_date", startISO.slice(0, 10))
-          .lte("expense_date", endISO.slice(0, 10)),
-      ]);
+      const [newClients, appts, payments, expenses, delinquent, topPlans, topExtras] =
+        await Promise.all([
+          supabase
+            .from("profiles")
+            .select("id", { count: "exact", head: true })
+            .gte("created_at", startISO)
+            .lte("created_at", endISO),
+          supabase
+            .from("appointments")
+            .select("id, status, scheduled_at")
+            .gte("scheduled_at", startISO)
+            .lte("scheduled_at", endISO),
+          supabase
+            .from("payments")
+            .select("amount, status, created_at")
+            .eq("environment", getClientPaymentsEnv())
+            .gte("created_at", startISO)
+            .lte("created_at", endISO),
+          supabase
+            .from("expenses")
+            .select("amount")
+            .gte("expense_date", startISO.slice(0, 10))
+            .lte("expense_date", endISO.slice(0, 10)),
+          supabase
+            .from("subscriptions")
+            .select("id", { count: "exact", head: true })
+            .eq("environment", getClientPaymentsEnv())
+            .in("status", ["past_due", "unpaid"]),
+          supabase
+            .from("subscriptions")
+            .select("plan_id, plans(name)")
+            .eq("environment", getClientPaymentsEnv())
+            .in("status", ["active", "trialing"]),
+          supabase
+            .from("appointment_extras")
+            .select("name_snapshot, created_at")
+            .gte("created_at", startISO)
+            .lte("created_at", endISO),
+        ]);
 
       if (appts.error) throw appts.error;
       if (payments.error) throw payments.error;
       if (expenses.error) throw expenses.error;
+      if (delinquent.error) throw delinquent.error;
+      if (topPlans.error) throw topPlans.error;
+      if (topExtras.error) throw topExtras.error;
 
       const apptRows = appts.data ?? [];
       const completed = apptRows.filter((a) => a.status === "completed").length;
@@ -127,6 +151,28 @@ function RelatoriosPage() {
       });
       const chartData = [...byDay.entries()].map(([day, value]) => ({ day, value }));
 
+      // Ranking de planos por número de assinantes ativos no período.
+      const planCounts = new Map<string, number>();
+      (topPlans.data ?? []).forEach((s: any) => {
+        const name = s.plans?.name ?? "Plano removido";
+        planCounts.set(name, (planCounts.get(name) ?? 0) + 1);
+      });
+      const rankedPlans = [...planCounts.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([name, count]) => ({ name, count }));
+
+      // Ranking de extras por número de vezes vendido no período.
+      const extraCounts = new Map<string, number>();
+      (topExtras.data ?? []).forEach((e: any) => {
+        const name = e.name_snapshot ?? "Extra removido";
+        extraCounts.set(name, (extraCounts.get(name) ?? 0) + 1);
+      });
+      const rankedExtras = [...extraCounts.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([name, count]) => ({ name, count }));
+
       return {
         newClients: newClients.count ?? 0,
         totalAppts: apptRows.length,
@@ -139,6 +185,9 @@ function RelatoriosPage() {
         totalExpenses,
         net: grossRevenue - totalExpenses,
         chartData,
+        delinquentClients: delinquent.count ?? 0,
+        rankedPlans,
+        rankedExtras,
       };
     },
   });
@@ -228,6 +277,13 @@ function RelatoriosPage() {
               loading={isLoading}
               tone={data && data.net >= 0 ? "green" : "red"}
             />
+            <Kpi
+              icon={AlertTriangle}
+              label="Clientes inadimplentes"
+              value={data?.delinquentClients}
+              loading={isLoading}
+              tone={data && data.delinquentClients > 0 ? "red" : undefined}
+            />
           </div>
 
           {/* Revenue chart */}
@@ -276,9 +332,82 @@ function RelatoriosPage() {
               </div>
             )}
           </Card>
+
+          {/* Rankings */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <RankingCard
+              title="Planos mais vendidos"
+              icon={Package}
+              items={data?.rankedPlans}
+              loading={isLoading}
+              emptyLabel="Nenhuma assinatura ativa neste período."
+            />
+            <RankingCard
+              title="Extras mais vendidos"
+              icon={Sparkles}
+              items={data?.rankedExtras}
+              loading={isLoading}
+              emptyLabel="Nenhum extra vendido neste período."
+            />
+          </div>
         </>
       )}
     </div>
+  );
+}
+
+function RankingCard({
+  title,
+  icon: Icon,
+  items,
+  loading,
+  emptyLabel,
+}: {
+  title: string;
+  icon: any;
+  items: Array<{ name: string; count: number }> | undefined;
+  loading: boolean;
+  emptyLabel: string;
+}) {
+  const maxCount = items?.length ? Math.max(...items.map((i) => i.count)) : 0;
+  return (
+    <Card className="rounded-2xl border-white/[0.08] bg-white/[0.03] p-5">
+      <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-foreground">
+        <Icon className="h-4 w-4 text-primary" />
+        {title}
+      </h2>
+
+      {loading && (
+        <div className="space-y-2">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-8 animate-pulse rounded-lg bg-white/[0.03]" />
+          ))}
+        </div>
+      )}
+
+      {!loading && items && items.length > 0 && (
+        <ul className="space-y-2.5">
+          {items.map((item) => (
+            <li key={item.name} className="space-y-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="truncate text-foreground/90">{item.name}</span>
+                <span className="shrink-0 font-medium text-muted-foreground">{item.count}</span>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.05]">
+                <div
+                  className="h-full rounded-full bg-primary"
+                  style={{ width: `${maxCount ? (item.count / maxCount) * 100 : 0}%` }}
+                />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {!loading && (!items || items.length === 0) && (
+        <p className="text-sm text-muted-foreground">{emptyLabel}</p>
+      )}
+    </Card>
   );
 }
 

@@ -17,6 +17,7 @@ import { Route as PainelRouteImport } from './routes/painel'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as ContaBloqueadaRouteImport } from './routes/conta-bloqueada'
+import { Route as ConfirmarEmailRouteImport } from './routes/confirmar-email'
 import { Route as CadastroRouteImport } from './routes/cadastro'
 import { Route as AtivarRouteImport } from './routes/ativar'
 import { Route as AssinaturaPendenteRouteImport } from './routes/assinatura-pendente'
@@ -102,6 +103,11 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
 const ContaBloqueadaRoute = ContaBloqueadaRouteImport.update({
   id: '/conta-bloqueada',
   path: '/conta-bloqueada',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfirmarEmailRoute = ConfirmarEmailRouteImport.update({
+  id: '/confirmar-email',
+  path: '/confirmar-email',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CadastroRoute = CadastroRouteImport.update({
@@ -355,6 +361,7 @@ export interface FileRoutesByFullPath {
   '/assinatura-pendente': typeof AssinaturaPendenteRoute
   '/ativar': typeof AtivarRoute
   '/cadastro': typeof CadastroRoute
+  '/confirmar-email': typeof ConfirmarEmailRoute
   '/conta-bloqueada': typeof ContaBloqueadaRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
@@ -409,6 +416,7 @@ export interface FileRoutesByTo {
   '/assinatura-pendente': typeof AssinaturaPendenteRoute
   '/ativar': typeof AtivarRoute
   '/cadastro': typeof CadastroRoute
+  '/confirmar-email': typeof ConfirmarEmailRoute
   '/conta-bloqueada': typeof ContaBloqueadaRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
@@ -466,6 +474,7 @@ export interface FileRoutesById {
   '/assinatura-pendente': typeof AssinaturaPendenteRoute
   '/ativar': typeof AtivarRoute
   '/cadastro': typeof CadastroRoute
+  '/confirmar-email': typeof ConfirmarEmailRoute
   '/conta-bloqueada': typeof ContaBloqueadaRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
@@ -523,6 +532,7 @@ export interface FileRouteTypes {
     | '/assinatura-pendente'
     | '/ativar'
     | '/cadastro'
+    | '/confirmar-email'
     | '/conta-bloqueada'
     | '/forgot-password'
     | '/login'
@@ -577,6 +587,7 @@ export interface FileRouteTypes {
     | '/assinatura-pendente'
     | '/ativar'
     | '/cadastro'
+    | '/confirmar-email'
     | '/conta-bloqueada'
     | '/forgot-password'
     | '/login'
@@ -633,6 +644,7 @@ export interface FileRouteTypes {
     | '/assinatura-pendente'
     | '/ativar'
     | '/cadastro'
+    | '/confirmar-email'
     | '/conta-bloqueada'
     | '/forgot-password'
     | '/login'
@@ -690,6 +702,7 @@ export interface RootRouteChildren {
   AssinaturaPendenteRoute: typeof AssinaturaPendenteRoute
   AtivarRoute: typeof AtivarRoute
   CadastroRoute: typeof CadastroRoute
+  ConfirmarEmailRoute: typeof ConfirmarEmailRoute
   ContaBloqueadaRoute: typeof ContaBloqueadaRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
@@ -761,6 +774,13 @@ declare module '@tanstack/react-router' {
       path: '/conta-bloqueada'
       fullPath: '/conta-bloqueada'
       preLoaderRoute: typeof ContaBloqueadaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/confirmar-email': {
+      id: '/confirmar-email'
+      path: '/confirmar-email'
+      fullPath: '/confirmar-email'
+      preLoaderRoute: typeof ConfirmarEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cadastro': {
@@ -1201,6 +1221,7 @@ const rootRouteChildren: RootRouteChildren = {
   AssinaturaPendenteRoute: AssinaturaPendenteRoute,
   AtivarRoute: AtivarRoute,
   CadastroRoute: CadastroRoute,
+  ConfirmarEmailRoute: ConfirmarEmailRoute,
   ContaBloqueadaRoute: ContaBloqueadaRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,

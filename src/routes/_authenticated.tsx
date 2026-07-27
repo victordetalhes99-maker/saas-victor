@@ -74,6 +74,13 @@ function AuthLayout() {
       nav({ to: "/admin", replace: true });
       return;
     }
+    // E-mail não confirmado: nenhuma etapa seguinte pode ser pulada.
+    // user.email_confirmed_at vem direto da sessão validada pelo Supabase
+    // Auth — não é um campo que o navegador possa forjar.
+    if (!user.email_confirmed_at && loc.pathname !== "/confirmar-email") {
+      nav({ to: "/confirmar-email", search: { email: user.email ?? "" }, replace: true });
+      return;
+    }
     // Contas bloqueadas: nenhum acesso a rotas privadas.
     if (!isAdmin && profileStatus === "blocked" && loc.pathname !== "/conta-bloqueada") {
       nav({ to: "/conta-bloqueada", replace: true });

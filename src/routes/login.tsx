@@ -86,7 +86,21 @@ function LoginPage() {
       void recordAttempt({
         data: { action: "login", email: normalizedEmail, success: !error && !!data.user },
       });
-      if (error || !data.user) throw error ?? new Error("auth_failed");
+      if (error) {
+        // Supabase distingue "e-mail não confirmado" de credenciais erradas.
+        // Manda a pessoa terminar a confirmação em vez de assustar com um
+        // erro de senha que não é o problema real.
+        if (/email not confirmed/i.test(error.message)) {
+          void navigate({
+            to: "/confirmar-email",
+            search: { email: normalizedEmail },
+            replace: true,
+          });
+          return;
+        }
+        throw error;
+      }
+      if (!data.user) throw new Error("auth_failed");
 
       const { data: roles } = await (supabase as any).rpc("list_user_roles", {
         _user_id: data.user.id,

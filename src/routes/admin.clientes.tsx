@@ -32,10 +32,12 @@ import {
   XCircle,
   Circle,
   Users,
+  Car,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { classifyClient } from "@/lib/client-classification";
 
 export const Route = createFileRoute("/admin/clientes")({
   component: ClientesPage,
@@ -102,16 +104,7 @@ const toneClass = (t: StatusTone) => {
 // ------------------------------------------------------------------------
 
 function classify(c: any): Bucket {
-  const sub = c.subscriptions?.[0];
-  const latestPayment = c.payments?.[0];
-  if (c.status === "blocked") return "blocked";
-  if (sub?.status === "cancelled") return "cancelled";
-  if (sub?.status === "expired" || sub?.status === "past_due") return "expired";
-  if (sub?.status === "active" && c.status === "active") return "active";
-  if (latestPayment && latestPayment.status === "pending") return "payment_review";
-  if (sub && sub.status === "pending") return "awaiting_payment";
-  if (!sub || !c.vehicles?.length || c.status === "pending") return "incomplete";
-  return "incomplete";
+  return classifyClient(c);
 }
 
 const fmtDate = (v?: string | null) => {
@@ -134,6 +127,50 @@ const fmtMoney = (v?: number | null) =>
   typeof v === "number" ? v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—";
 
 // ==========================================================================
+
+// Avatar circular com as iniciais do cliente (não há upload de foto de
+// perfil ainda — só de veículo — então o fallback precisa ser bom sozinho).
+const AVATAR_TONES = [
+  "bg-emerald-400/15 text-emerald-200",
+  "bg-sky-400/15 text-sky-200",
+  "bg-amber-400/15 text-amber-200",
+  "bg-fuchsia-400/15 text-fuchsia-200",
+  "bg-orange-400/15 text-orange-200",
+];
+
+function initialsOf(name?: string | null) {
+  const clean = (name ?? "").trim();
+  if (!clean) return "?";
+  const parts = clean.split(/\s+/).filter(Boolean);
+  const first = parts[0]?.[0] ?? "";
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
+  return (first + last).toUpperCase();
+}
+
+function ClientAvatar({ name, avatarUrl }: { name?: string | null; avatarUrl?: string | null }) {
+  const initials = initialsOf(name);
+  const toneIndex =
+    (name ?? "").split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0) % AVATAR_TONES.length;
+
+  if (avatarUrl) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={name ?? "Cliente"}
+        className="h-14 w-14 shrink-0 rounded-full object-cover ring-1 ring-white/10"
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`grid h-14 w-14 shrink-0 place-items-center rounded-full text-sm font-semibold ring-1 ring-white/10 ${AVATAR_TONES[toneIndex]}`}
+      aria-hidden
+    >
+      {initials}
+    </div>
+  );
+}
 
 function ClientesPage() {
   const qc = useQueryClient();
@@ -515,15 +552,16 @@ function ClientesPage() {
               >
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="flex min-w-0 flex-1 items-start gap-3">
+                    <ClientAvatar name={c.full_name || c.email} avatarUrl={c.avatar_url} />
                     {veh?.image_url ? (
                       <img
                         src={veh.image_url}
-                        alt=""
+                        alt={`${veh.brand ?? ""} ${veh.model ?? ""}`}
                         className="h-14 w-20 shrink-0 rounded-xl object-cover ring-1 ring-white/10"
                       />
                     ) : (
-                      <div className="grid h-14 w-20 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/[0.03] text-[10px] uppercase tracking-wider text-muted-foreground">
-                        sem foto
+                      <div className="grid h-14 w-20 shrink-0 place-items-center rounded-xl border border-dashed border-white/10 bg-white/[0.02] text-muted-foreground/50">
+                        <Car className="h-5 w-5" />
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
@@ -759,19 +797,22 @@ function ClientDetailsSheet({
       >
         {/* Header (sticky) */}
         <SheetHeader className="sticky top-0 z-10 flex-row items-start justify-between gap-3 border-b border-white/10 bg-[oklch(0.09_0.01_230)] px-5 py-4 pr-16 text-left">
-          <div className="min-w-0 flex-1 space-y-1">
-            <SheetTitle className="truncate text-lg font-semibold text-white sm:text-xl">
-              {client.full_name || client.email}
-            </SheetTitle>
-            <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-              <span>Cadastro: {fmtDate(client.created_at)}</span>
-              <span
-                className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${toneClass(
-                  BUCKET_TONE[b],
-                )}`}
-              >
-                {BUCKET_LABEL[b]}
-              </span>
+          <div className="flex min-w-0 flex-1 items-start gap-3">
+            <ClientAvatar name={client.full_name || client.email} avatarUrl={client.avatar_url} />
+            <div className="min-w-0 flex-1 space-y-1">
+              <SheetTitle className="truncate text-lg font-semibold text-white sm:text-xl">
+                {client.full_name || client.email}
+              </SheetTitle>
+              <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                <span>Cadastro: {fmtDate(client.created_at)}</span>
+                <span
+                  className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${toneClass(
+                    BUCKET_TONE[b],
+                  )}`}
+                >
+                  {BUCKET_LABEL[b]}
+                </span>
+              </div>
             </div>
           </div>
         </SheetHeader>

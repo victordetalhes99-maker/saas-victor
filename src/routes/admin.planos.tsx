@@ -2,11 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getClientPaymentsEnv } from "@/lib/payments-env";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
@@ -16,7 +16,17 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Package, Plus, Pencil, AlertTriangle, Users, CreditCard } from "lucide-react";
+import {
+  Package,
+  Plus,
+  Pencil,
+  AlertTriangle,
+  Users,
+  CreditCard,
+  ChevronUp,
+  ChevronDown,
+  X,
+} from "lucide-react";
 
 export const Route = createFileRoute("/admin/planos")({
   component: PlanosPage,
@@ -51,6 +61,7 @@ function PlanosPage() {
         supabase
           .from("subscriptions")
           .select("plan_id, status")
+          .eq("environment", getClientPaymentsEnv())
           .in("status", ["active", "trialing"]),
       ]);
       if (plansRes.error) throw plansRes.error;
@@ -253,7 +264,8 @@ function PlanEditorDialog({
   const [price, setPrice] = useState(plan?.monthly_price?.toString() ?? "");
   const [washes, setWashes] = useState(plan?.washes_per_month?.toString() ?? "4");
   const [duration, setDuration] = useState(plan?.default_duration_minutes?.toString() ?? "30");
-  const [benefits, setBenefits] = useState((plan?.benefits ?? []).join("\n"));
+  const [benefits, setBenefits] = useState<string[]>(plan?.benefits ?? []);
+  const [newBenefit, setNewBenefit] = useState("");
   const [stripePriceId, setStripePriceId] = useState(plan?.stripe_price_id ?? "");
   const [saving, setSaving] = useState(false);
 
@@ -266,9 +278,29 @@ function PlanEditorDialog({
     setPrice(plan?.monthly_price?.toString() ?? "");
     setWashes(plan?.washes_per_month?.toString() ?? "4");
     setDuration(plan?.default_duration_minutes?.toString() ?? "30");
-    setBenefits((plan?.benefits ?? []).join("\n"));
+    setBenefits(plan?.benefits ?? []);
+    setNewBenefit("");
     setStripePriceId(plan?.stripe_price_id ?? "");
   }
+
+  const addBenefit = () => {
+    const value = newBenefit.trim();
+    if (!value) return;
+    setBenefits((list) => [...list, value]);
+    setNewBenefit("");
+  };
+  const removeBenefit = (index: number) => {
+    setBenefits((list) => list.filter((_, i) => i !== index));
+  };
+  const moveBenefit = (index: number, dir: -1 | 1) => {
+    setBenefits((list) => {
+      const next = [...list];
+      const target = index + dir;
+      if (target < 0 || target >= next.length) return next;
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  };
 
   const save = async () => {
     if (!name.trim() || !price) {
@@ -281,10 +313,7 @@ function PlanEditorDialog({
       monthly_price: Number(price),
       washes_per_month: Number(washes) || 0,
       default_duration_minutes: Number(duration) || 30,
-      benefits: benefits
-        .split("\n")
-        .map((b) => b.trim())
-        .filter(Boolean),
+      benefits,
       stripe_price_id: stripePriceId.trim() || null,
     };
     try {
@@ -343,13 +372,71 @@ function PlanEditorDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs">Benefícios (um por linha)</Label>
-            <Textarea
-              value={benefits}
-              onChange={(e) => setBenefits(e.target.value)}
-              placeholder={"Lavagem completa\nAspiração interna\nPrioridade na agenda"}
-              rows={4}
-            />
+            <Label className="text-xs">Benefícios</Label>
+            <div className="flex gap-2">
+              <Input
+                value={newBenefit}
+                onChange={(e) => setNewBenefit(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addBenefit();
+                  }
+                }}
+                placeholder="Ex: Prioridade na agenda"
+              />
+              <Button
+                type="button"
+                onClick={addBenefit}
+                disabled={!newBenefit.trim()}
+                className="h-10 shrink-0 rounded-xl bg-primary/15 px-3 text-primary hover:bg-primary/25"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {benefits.length > 0 ? (
+              <ul className="mt-2 space-y-1.5">
+                {benefits.map((b, i) => (
+                  <li
+                    key={`${b}-${i}`}
+                    className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2"
+                  >
+                    <span className="min-w-0 flex-1 truncate text-sm text-foreground/90">{b}</span>
+                    <button
+                      type="button"
+                      onClick={() => moveBenefit(i, -1)}
+                      disabled={i === 0}
+                      className="grid h-6 w-6 place-items-center rounded text-muted-foreground disabled:opacity-30 hover:bg-white/5 hover:text-foreground"
+                      aria-label="Mover para cima"
+                    >
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveBenefit(i, 1)}
+                      disabled={i === benefits.length - 1}
+                      className="grid h-6 w-6 place-items-center rounded text-muted-foreground disabled:opacity-30 hover:bg-white/5 hover:text-foreground"
+                      aria-label="Mover para baixo"
+                    >
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeBenefit(i)}
+                      className="grid h-6 w-6 place-items-center rounded text-rose-300 hover:bg-rose-400/10"
+                      aria-label="Remover benefício"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Nenhum benefício adicionado ainda.
+              </p>
+            )}
           </div>
 
           <div className="space-y-1.5">

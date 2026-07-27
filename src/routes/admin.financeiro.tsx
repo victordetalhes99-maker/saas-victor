@@ -2,11 +2,19 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getClientPaymentsEnv } from "@/lib/payments-env";
 import { useAuth } from "@/hooks/use-auth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -25,7 +33,26 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { TrendingUp, TrendingDown, Scale, Plus, Trash2, PiggyBank } from "lucide-react";
+import {
+  TrendingUp,
+  TrendingDown,
+  Scale,
+  Plus,
+  Trash2,
+  PiggyBank,
+  Clock,
+  Repeat,
+  ShoppingBag,
+  Wrench,
+  Building2,
+  Zap,
+  Droplet,
+  Megaphone,
+  Hammer,
+  Users,
+  Landmark,
+  Receipt,
+} from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -39,6 +66,32 @@ type Expense = {
   description: string | null;
   amount: number;
   expense_date: string;
+};
+
+const EXPENSE_CATEGORIES = [
+  "Produtos",
+  "Equipamentos",
+  "Aluguel",
+  "Energia",
+  "Água",
+  "Marketing",
+  "Manutenção",
+  "Salários",
+  "Impostos",
+  "Outros",
+] as const;
+
+const EXPENSE_CATEGORY_ICON: Record<string, any> = {
+  Produtos: ShoppingBag,
+  Equipamentos: Wrench,
+  Aluguel: Building2,
+  Energia: Zap,
+  Água: Droplet,
+  Marketing: Megaphone,
+  Manutenção: Hammer,
+  Salários: Users,
+  Impostos: Landmark,
+  Outros: Receipt,
 };
 
 const fmtMoney = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -59,30 +112,97 @@ function FinanceiroPage() {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+  const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59).toISOString();
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["admin-finance", monthStart],
     queryFn: async () => {
-      const [revenueRes, expensesRes] = await Promise.all([
-        supabase
-          .from("payments")
-          .select("amount")
-          .eq("status", "paid")
-          .gte("created_at", monthStart)
-          .lte("created_at", monthEnd),
-        supabase
-          .from("expenses")
-          .select("*")
-          .order("expense_date", { ascending: false })
-          .limit(100),
-      ]);
+      const [revenueRes, lastRevenueRes, pendingRes, expensesRes, activeSubsRes] =
+        await Promise.all([
+          supabase
+            .from("payments")
+            .select("amount")
+            .eq("status", "paid")
+            .eq("environment", getClientPaymentsEnv())
+            .gte("created_at", monthStart)
+            .lte("created_at", monthEnd),
+          supabase
+            .from("payments")
+            .select("amount")
+            .eq("status", "paid")
+            .eq("environment", getClientPaymentsEnv())
+            .gte("created_at", lastMonthStart)
+            .lte("created_at", lastMonthEnd),
+          supabase
+            .from("payments")
+            .select("amount")
+            .eq("status", "pending")
+            .eq("environment", getClientPaymentsEnv()),
+          supabase
+            .from("expenses")
+            .select("*")
+            .order("expense_date", { ascending: false })
+            .limit(200),
+          supabase
+            .from("subscriptions")
+            .select("id, plans(monthly_price)")
+            .eq("environment", getClientPaymentsEnv())
+            .in("status", ["active", "trialing"]),
+        ]);
       if (revenueRes.error) throw revenueRes.error;
+      if (lastRevenueRes.error) throw lastRevenueRes.error;
+      if (pendingRes.error) throw pendingRes.error;
       if (expensesRes.error) throw expensesRes.error;
+      if (activeSubsRes.error) throw activeSubsRes.error;
+
+      // Realizado: pagamentos já confirmados (status = paid) neste mês.
       const revenue = (revenueRes.data ?? []).reduce((s, p) => s + Number(p.amount), 0);
+      const lastMonthRevenue = (lastRevenueRes.data ?? []).reduce(
+        (s, p) => s + Number(p.amount),
+        0,
+      );
+      const revenueDeltaPct =
+        lastMonthRevenue > 0
+          ? Math.round(((revenue - lastMonthRevenue) / lastMonthRevenue) * 100)
+          : revenue > 0
+            ? 100
+            : 0;
+
+      // Pendente: cobranças criadas mas ainda não confirmadas — nunca é
+      // somado ao resultado, só exibido separadamente.
+      const pendingRevenue = (pendingRes.data ?? []).reduce((s, p) => s + Number(p.amount), 0);
+      // Previsto: receita recorrente esperada das assinaturas ativas
+      // (MRR), que ainda vai gerar cobrança mas não é dinheiro em caixa.
+      const forecastMrr = (activeSubsRes.data ?? []).reduce(
+        (s, sub: any) => s + Number(sub.plans?.monthly_price ?? 0),
+        0,
+      );
+
       const expenses = (expensesRes.data ?? []) as Expense[];
       const monthExpenses = expenses.filter((e) => e.expense_date >= monthStart.slice(0, 10));
       const totalExpenses = monthExpenses.reduce((s, e) => s + Number(e.amount), 0);
-      return { revenue, expenses, totalExpenses };
+      const lastMonthExpenses = expenses.filter(
+        (e) =>
+          e.expense_date >= lastMonthStart.slice(0, 10) && e.expense_date < monthStart.slice(0, 10),
+      );
+      const lastMonthExpensesTotal = lastMonthExpenses.reduce((s, e) => s + Number(e.amount), 0);
+      const expensesDeltaPct =
+        lastMonthExpensesTotal > 0
+          ? Math.round(((totalExpenses - lastMonthExpensesTotal) / lastMonthExpensesTotal) * 100)
+          : totalExpenses > 0
+            ? 100
+            : 0;
+
+      return {
+        revenue,
+        revenueDeltaPct,
+        pendingRevenue,
+        forecastMrr,
+        expenses,
+        totalExpenses,
+        expensesDeltaPct,
+      };
     },
   });
 
@@ -121,26 +241,52 @@ function FinanceiroPage() {
         </Button>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <SummaryCard
           icon={TrendingUp}
-          label="Receita do mês"
+          label="Receita do mês (realizado)"
           value={fmtMoney(data?.revenue ?? 0)}
           tone="green"
+          deltaPct={data?.revenueDeltaPct}
+        />
+        <SummaryCard
+          icon={Clock}
+          label="Pendente (não confirmado)"
+          value={fmtMoney(data?.pendingRevenue ?? 0)}
+          tone="yellow"
+        />
+        <SummaryCard
+          icon={Repeat}
+          label="Previsto (MRR ativo)"
+          value={fmtMoney(data?.forecastMrr ?? 0)}
+          tone="yellow"
         />
         <SummaryCard
           icon={TrendingDown}
           label="Despesas do mês"
           value={fmtMoney(data?.totalExpenses ?? 0)}
           tone="red"
+          deltaPct={data?.expensesDeltaPct}
+          invertDeltaTone
         />
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
         <SummaryCard
           icon={Scale}
-          label="Resultado líquido"
+          label="Resultado líquido (realizado − despesas)"
           value={fmtMoney(netResult)}
           tone={netResult >= 0 ? "green" : "red"}
         />
       </div>
+
+      <p className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3.5 py-2.5 text-xs text-muted-foreground">
+        <strong className="text-foreground">Realizado</strong> é dinheiro já confirmado pelo Stripe.{" "}
+        <strong className="text-foreground">Pendente</strong> são cobranças criadas que ainda
+        aguardam confirmação. <strong className="text-foreground">Previsto</strong> é a receita
+        recorrente esperada das assinaturas ativas este mês. Nenhum dos dois entra no resultado
+        líquido até ser confirmado.
+      </p>
 
       <div>
         <h2 className="mb-3 text-sm font-semibold text-foreground">Despesas recentes</h2>
@@ -163,12 +309,20 @@ function FinanceiroPage() {
                 key={e.id}
                 className="flex items-center justify-between gap-3 rounded-2xl border-white/10 bg-card p-3.5"
               >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-foreground">
-                    {e.category}
-                    {e.description ? ` — ${e.description}` : ""}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">{fmtDate(e.expense_date)}</p>
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/[0.03] text-muted-foreground">
+                    {(() => {
+                      const Icon = EXPENSE_CATEGORY_ICON[e.category] ?? Receipt;
+                      return <Icon className="h-4 w-4" />;
+                    })()}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {e.category}
+                      {e.description ? ` — ${e.description}` : ""}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">{fmtDate(e.expense_date)}</p>
+                  </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-semibold text-rose-300">
@@ -235,26 +389,35 @@ function SummaryCard({
   label,
   value,
   tone,
+  deltaPct,
+  invertDeltaTone,
 }: {
   icon: any;
   label: string;
   value: string;
-  tone: "green" | "red";
+  tone: "green" | "yellow" | "red";
+  deltaPct?: number;
+  invertDeltaTone?: boolean;
 }) {
+  const toneClass =
+    tone === "green" ? "text-emerald-300" : tone === "yellow" ? "text-amber-300" : "text-rose-300";
+  const deltaPositive = invertDeltaTone ? (deltaPct ?? 0) <= 0 : (deltaPct ?? 0) >= 0;
   return (
     <Card className="rounded-2xl border-white/[0.08] bg-white/[0.03] p-4">
       <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
-        <Icon
-          className={`h-3.5 w-3.5 ${tone === "green" ? "text-emerald-300" : "text-rose-300"}`}
-        />
+        <Icon className={`h-3.5 w-3.5 ${toneClass}`} />
         {label}
       </div>
-      <div
-        className={`mt-1 truncate text-xl font-semibold ${
-          tone === "green" ? "text-emerald-300" : "text-rose-300"
-        }`}
-      >
-        {value}
+      <div className="mt-1 flex items-baseline gap-2">
+        <span className={`truncate text-xl font-semibold ${toneClass}`}>{value}</span>
+        {typeof deltaPct === "number" && deltaPct !== 0 && (
+          <span
+            className={`text-[11px] font-medium ${deltaPositive ? "text-emerald-300" : "text-rose-300"}`}
+          >
+            {deltaPct > 0 ? "+" : ""}
+            {deltaPct}% vs mês anterior
+          </span>
+        )}
       </div>
     </Card>
   );
@@ -313,11 +476,24 @@ function NewExpenseDialog({
         <div className="space-y-4">
           <div className="space-y-1.5">
             <Label className="text-xs">Categoria</Label>
-            <Input
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              placeholder="Produtos de limpeza"
-            />
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione uma categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                {EXPENSE_CATEGORIES.map((c) => {
+                  const Icon = EXPENSE_CATEGORY_ICON[c];
+                  return (
+                    <SelectItem key={c} value={c}>
+                      <span className="flex items-center gap-2">
+                        <Icon className="h-3.5 w-3.5" />
+                        {c}
+                      </span>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Descrição (opcional)</Label>

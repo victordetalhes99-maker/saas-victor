@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getClientPaymentsEnv } from "@/lib/payments-env";
 import {
   Users,
   CalendarRange,
@@ -46,6 +47,7 @@ function AdminHomePage() {
         supabase
           .from("subscriptions")
           .select("id", { count: "exact", head: true })
+          .eq("environment", getClientPaymentsEnv())
           .in("status", ["active", "trialing"]),
         supabase
           .from("appointments")

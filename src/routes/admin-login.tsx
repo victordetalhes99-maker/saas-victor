@@ -100,6 +100,11 @@ function AdminLoginPage() {
       });
       if (error || !data.user) {
         void recordAttempt({ data: { action: "login", email: normalizedEmail, success: false } });
+        if (error && /email not confirmed/i.test(error.message)) {
+          throw new Error(
+            "Esta conta de administrador ainda não teve o e-mail confirmado. Contate o owner.",
+          );
+        }
         throw error ?? new Error("auth");
       }
 

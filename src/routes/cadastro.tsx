@@ -72,11 +72,18 @@ function CadastroPage() {
         data: { action: "signup", email: normalizedEmail, success: !signUpError },
       });
       if (signUpError) throw signUpError;
-      toast.success("Cadastro enviado.");
       if (data.session) {
+        // "Confirm email" está desativado no Supabase (ou o convite já
+        // veio pré-confirmado) — segue direto pro fluxo de aprovação.
+        toast.success("Cadastro enviado.");
         void navigate({ to: "/aguardando-aprovacao", replace: true });
       } else {
-        void navigate({ to: "/login", replace: true });
+        // Fluxo normal: precisa confirmar o e-mail antes de continuar.
+        void navigate({
+          to: "/confirmar-email",
+          search: { email: normalizedEmail },
+          replace: true,
+        });
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Falha ao cadastrar.";
