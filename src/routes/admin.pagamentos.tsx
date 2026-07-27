@@ -392,7 +392,7 @@ function PaymentDetailDialog({
 
   return (
     <Dialog open={!!payment} onOpenChange={onOpenChange}>
-      <DialogContent className="rounded-2xl border-white/10 bg-card sm:max-w-md">
+      <DialogContent className="max-w-[520px]">
         <DialogHeader>
           <DialogTitle>
             Pagamento de {payment.profiles?.full_name || payment.profiles?.email}

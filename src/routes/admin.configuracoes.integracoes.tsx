@@ -456,7 +456,7 @@ function ConfigureDialog({
 
   return (
     <Dialog open={!!provider} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto bg-card border-white/10 rounded-[24px]">
+      <DialogContent className="max-w-[720px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <KeyRound className="h-4 w-4" /> Configurar {def?.name}

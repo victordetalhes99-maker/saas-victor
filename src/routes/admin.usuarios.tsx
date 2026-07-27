@@ -476,7 +476,7 @@ function StaffAccessPage() {
                             </TooltipTrigger>
                             <TooltipContent>Revogar acesso</TooltipContent>
                           </Tooltip>
-                          <AlertDialogContent className="rounded-2xl border-white/10 bg-card">
+                          <AlertDialogContent>
                             <AlertDialogHeader>
                               <AlertDialogTitle>Revogar acesso de {s.fullName}?</AlertDialogTitle>
                               <AlertDialogDescription>

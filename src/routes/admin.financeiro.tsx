@@ -361,7 +361,7 @@ function FinanceiroPage() {
       />
 
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
-        <AlertDialogContent className="rounded-2xl border-white/10 bg-card">
+        <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remover despesa?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -469,7 +469,7 @@ function NewExpenseDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="rounded-2xl border-white/10 bg-card sm:max-w-md">
+      <DialogContent className="max-w-[480px]">
         <DialogHeader>
           <DialogTitle>Nova despesa</DialogTitle>
         </DialogHeader>

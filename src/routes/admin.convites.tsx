@@ -406,7 +406,7 @@ function ConvitesPage() {
                             <XCircle className="h-3 w-3" /> Revogar
                           </Button>
                         </AlertDialogTrigger>
-                        <AlertDialogContent className="rounded-2xl border-white/10 bg-card">
+                        <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle>Revogar convite de {inv.email}?</AlertDialogTitle>
                             <AlertDialogDescription>

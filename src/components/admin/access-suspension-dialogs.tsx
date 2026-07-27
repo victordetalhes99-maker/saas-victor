@@ -721,7 +721,7 @@ export function ConfirmActionDialog({
   };
   return (
     <Dialog open={open} onOpenChange={(o) => !busy && onOpenChange(o)}>
-      <DialogContent className="w-[92vw] bg-card sm:max-w-md">
+      <DialogContent className="max-w-[480px]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description && (

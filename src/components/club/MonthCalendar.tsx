@@ -160,7 +160,7 @@ export function MonthCalendar(props: Props) {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md rounded-[28px] border-white/10 bg-background p-5 shadow-2xl backdrop-blur-xl [&>button]:hidden">
+        <DialogContent className="max-w-[480px] [&>button]:hidden">
           <DialogTitle className="sr-only">Calendário de agendamento</DialogTitle>
           <DialogDescription className="sr-only">
             Escolha qualquer dia disponível no calendário completo para agendar a lavagem.

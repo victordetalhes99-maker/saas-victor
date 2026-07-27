@@ -569,7 +569,7 @@ function BlockSlotDialog({
           <Ban className="mr-2 h-3.5 w-3.5" /> Bloquear horário
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md rounded-[28px] border-white/10 bg-background p-5">
+      <DialogContent className="max-w-[480px]">
         <DialogHeader>
           <DialogTitle className="tracking-tight">Bloquear horário</DialogTitle>
         </DialogHeader>
@@ -622,7 +622,7 @@ function AppointmentDialog({
 
   return (
     <Dialog open={!!appointment} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md rounded-[28px] border-white/10 bg-background p-5">
+      <DialogContent className="max-w-[480px]">
         <DialogHeader>
           <DialogTitle className="tracking-tight">Detalhes do agendamento</DialogTitle>
         </DialogHeader>

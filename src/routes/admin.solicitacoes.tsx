@@ -377,7 +377,7 @@ function SolicitacoesPage() {
 
       {/* Reject signup dialog */}
       <Dialog open={!!rejectTarget} onOpenChange={(o) => !o && setRejectTarget(null)}>
-        <DialogContent className="rounded-2xl border-white/10 bg-card sm:max-w-md">
+        <DialogContent className="max-w-[480px]">
           <DialogHeader>
             <DialogTitle>Recusar cadastro de {rejectTarget?.name}</DialogTitle>
           </DialogHeader>
@@ -409,7 +409,7 @@ function SolicitacoesPage() {
 
       {/* Deletion decision dialog */}
       <Dialog open={!!deletionDecision} onOpenChange={(o) => !o && setDeletionDecision(null)}>
-        <DialogContent className="rounded-2xl border-white/10 bg-card sm:max-w-md">
+        <DialogContent className="max-w-[480px]">
           <DialogHeader>
             <DialogTitle>
               {deletionDecision?.kind === "approved" ? "Aprovar" : "Recusar"} exclusão de dados de{" "}

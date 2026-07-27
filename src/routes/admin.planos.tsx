@@ -336,7 +336,7 @@ function PlanEditorDialog({
 
   return (
     <Dialog open={target !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto rounded-2xl border-white/10 bg-card sm:max-w-lg">
+      <DialogContent className="max-w-[720px]">
         <DialogHeader>
           <DialogTitle>{isNew ? "Novo plano" : `Editar ${plan?.name}`}</DialogTitle>
         </DialogHeader>
