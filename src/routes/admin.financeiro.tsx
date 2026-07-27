@@ -18,9 +18,9 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
+  DialogIconHeader,
   DialogFooter,
+  DialogBody,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -52,6 +52,7 @@ import {
   Users,
   Landmark,
   Receipt,
+  Wallet,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -469,15 +470,17 @@ function NewExpenseDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[480px]">
-        <DialogHeader>
-          <DialogTitle>Nova despesa</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <Label className="text-xs">Categoria</Label>
+      <DialogContent className="max-w-[700px]">
+        <DialogIconHeader
+          icon={Wallet}
+          title="Nova despesa"
+          description="Registre uma nova saída financeira"
+        />
+        <DialogBody>
+          <div>
+            <Label>Categoria</Label>
             <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger>
+              <SelectTrigger className="mt-2">
                 <SelectValue placeholder="Selecione uma categoria" />
               </SelectTrigger>
               <SelectContent>
@@ -495,34 +498,49 @@ function NewExpenseDialog({
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Descrição (opcional)</Label>
-            <Input value={description} onChange={(e) => setDescription(e.target.value)} />
+          <div>
+            <Label>Descrição (opcional)</Label>
+            <Input
+              className="mt-2"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Valor (R$)</Label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label>Valor (R$)</Label>
               <Input
+                className="mt-2"
                 type="number"
                 step="0.01"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
               />
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Data</Label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <div>
+              <Label>Data</Label>
+              <Input
+                className="mt-2"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+              />
             </div>
           </div>
-        </div>
+        </DialogBody>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => onOpenChange(false)}
+            className="h-14 rounded-[18px] border border-white/[0.08] bg-[linear-gradient(145deg,oklch(1_0_0/0.055),oklch(1_0_0/0.025))] text-[15px] font-semibold text-foreground hover:bg-white/[0.08]"
+          >
             Cancelar
           </Button>
           <Button
             disabled={saving}
             onClick={save}
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
+            className="h-14 rounded-[18px] bg-[linear-gradient(135deg,#4cf278,#63e987)] text-[15px] font-semibold text-[#07130b] shadow-[0_0_30px_rgba(71,255,125,0.34),0_12px_30px_rgba(37,220,94,0.20),inset_0_1px_0_rgba(255,255,255,0.38)] transition-all hover:brightness-105 active:scale-[0.98]"
           >
             {saving ? "Salvando..." : "Cadastrar despesa"}
           </Button>

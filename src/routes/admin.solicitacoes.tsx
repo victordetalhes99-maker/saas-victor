@@ -9,12 +9,12 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
+  DialogIconHeader,
   DialogFooter,
+  DialogBody,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { UserPlus, ShieldAlert, Check, X, Inbox, Clock } from "lucide-react";
+import { UserPlus, ShieldAlert, Check, X, Inbox, Clock, XCircle, ShieldCheck } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -377,29 +377,33 @@ function SolicitacoesPage() {
 
       {/* Reject signup dialog */}
       <Dialog open={!!rejectTarget} onOpenChange={(o) => !o && setRejectTarget(null)}>
-        <DialogContent className="max-w-[480px]">
-          <DialogHeader>
-            <DialogTitle>Recusar cadastro de {rejectTarget?.name}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2">
-            <p className="text-xs text-muted-foreground">
-              O motivo é obrigatório e fica registrado no histórico do cliente.
-            </p>
+        <DialogContent className="max-w-[700px]">
+          <DialogIconHeader
+            icon={XCircle}
+            title={`Recusar cadastro de ${rejectTarget?.name ?? ""}`}
+            description="O motivo é obrigatório e fica registrado no histórico do cliente"
+          />
+          <DialogBody>
             <Textarea
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
               placeholder="Explique o motivo da recusa..."
               rows={4}
             />
-          </div>
+          </DialogBody>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setRejectTarget(null)}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setRejectTarget(null)}
+              className="h-14 rounded-[18px] border border-white/[0.08] bg-[linear-gradient(145deg,oklch(1_0_0/0.055),oklch(1_0_0/0.025))] text-[15px] font-semibold text-foreground hover:bg-white/[0.08]"
+            >
               Cancelar
             </Button>
             <Button
               disabled={!rejectReason.trim() || busyId === rejectTarget?.id}
               onClick={rejectSignup}
-              className="bg-rose-500 text-white hover:bg-rose-500/90"
+              className="h-14 rounded-[18px] bg-rose-500 text-[15px] font-semibold text-white hover:bg-rose-500/90"
             >
               Confirmar recusa
             </Button>
@@ -409,16 +413,15 @@ function SolicitacoesPage() {
 
       {/* Deletion decision dialog */}
       <Dialog open={!!deletionDecision} onOpenChange={(o) => !o && setDeletionDecision(null)}>
-        <DialogContent className="max-w-[480px]">
-          <DialogHeader>
-            <DialogTitle>
-              {deletionDecision?.kind === "approved" ? "Aprovar" : "Recusar"} exclusão de dados de{" "}
-              {deletionDecision?.name}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2">
+        <DialogContent className="max-w-[700px]">
+          <DialogIconHeader
+            icon={ShieldCheck}
+            title={`${deletionDecision?.kind === "approved" ? "Aprovar" : "Recusar"} exclusão de dados de ${deletionDecision?.name ?? ""}`}
+            description="Decisão sobre a solicitação de exclusão de dados (LGPD)"
+          />
+          <DialogBody>
             {deletionDecision?.kind === "approved" && (
-              <p className="rounded-lg border border-amber-400/30 bg-amber-400/10 p-2.5 text-xs text-amber-100">
+              <p className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-3.5 text-sm text-amber-100">
                 Aprovar marca a solicitação como aceita. A exclusão/anonimização definitiva dos
                 dados deve ser executada manualmente conforme a política de retenção da empresa.
               </p>
@@ -429,9 +432,14 @@ function SolicitacoesPage() {
               placeholder="Observação interna (opcional)..."
               rows={3}
             />
-          </div>
+          </DialogBody>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setDeletionDecision(null)}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setDeletionDecision(null)}
+              className="h-14 rounded-[18px] border border-white/[0.08] bg-[linear-gradient(145deg,oklch(1_0_0/0.055),oklch(1_0_0/0.025))] text-[15px] font-semibold text-foreground hover:bg-white/[0.08]"
+            >
               Cancelar
             </Button>
             <Button
@@ -439,8 +447,8 @@ function SolicitacoesPage() {
               onClick={decideDeletion}
               className={
                 deletionDecision?.kind === "approved"
-                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                  : "bg-rose-500 text-white hover:bg-rose-500/90"
+                  ? "h-14 rounded-[18px] bg-[linear-gradient(135deg,#4cf278,#63e987)] text-[15px] font-semibold text-[#07130b] shadow-[0_0_30px_rgba(71,255,125,0.34),0_12px_30px_rgba(37,220,94,0.20),inset_0_1px_0_rgba(255,255,255,0.38)] hover:brightness-105"
+                  : "h-14 rounded-[18px] bg-rose-500 text-[15px] font-semibold text-white hover:bg-rose-500/90"
               }
             >
               Confirmar

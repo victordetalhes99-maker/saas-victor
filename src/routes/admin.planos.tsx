@@ -11,9 +11,10 @@ import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
+  DialogIconHeader,
   DialogFooter,
+  DialogBody,
+  DialogSecurityBadge,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
@@ -26,6 +27,9 @@ import {
   ChevronUp,
   ChevronDown,
   X,
+  Crown,
+  Check,
+  Sparkles,
 } from "lucide-react";
 
 export const Route = createFileRoute("/admin/planos")({
@@ -336,44 +340,60 @@ function PlanEditorDialog({
 
   return (
     <Dialog open={target !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[720px]">
-        <DialogHeader>
-          <DialogTitle>{isNew ? "Novo plano" : `Editar ${plan?.name}`}</DialogTitle>
-        </DialogHeader>
+      <DialogContent className="max-w-[700px]">
+        <DialogIconHeader
+          icon={Crown}
+          title={isNew ? "Novo plano" : `Editar ${plan?.name}`}
+          description={isNew ? "Crie um plano de assinatura" : "Atualize os detalhes do plano"}
+        />
 
-        <div className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label className="text-xs">Nome</Label>
+        <DialogBody>
+          <div>
+            <Label>Nome</Label>
+            <Input
+              className="mt-2"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ex: Plano Mensal Premium"
+            />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label>Valor mensal (R$)</Label>
               <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Plano Mensal"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Valor mensal (R$)</Label>
-              <Input
+                className="mt-2"
                 type="number"
                 step="0.01"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
-                placeholder="99.90"
+                placeholder="99,90"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Lavagens/mês</Label>
-              <Input type="number" value={washes} onChange={(e) => setWashes(e.target.value)} />
-            </div>
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label className="text-xs">Duração padrão por atendimento (min)</Label>
-              <Input type="number" value={duration} onChange={(e) => setDuration(e.target.value)} />
+            <div>
+              <Label>Lavagens/mês</Label>
+              <Input
+                className="mt-2"
+                type="number"
+                value={washes}
+                onChange={(e) => setWashes(e.target.value)}
+              />
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-xs">Benefícios</Label>
-            <div className="flex gap-2">
+          <div>
+            <Label>Duração para atendimento (min)</Label>
+            <Input
+              className="mt-2"
+              type="number"
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label>Benefícios</Label>
+            <div className="mt-2 flex gap-3">
               <Input
                 value={newBenefit}
                 onChange={(e) => setNewBenefit(e.target.value)}
@@ -383,25 +403,27 @@ function PlanEditorDialog({
                     addBenefit();
                   }
                 }}
-                placeholder="Ex: Prioridade na agenda"
+                placeholder="Ex: Prioridade na agenda, suporte exclusivo..."
               />
-              <Button
+              <button
                 type="button"
                 onClick={addBenefit}
                 disabled={!newBenefit.trim()}
-                className="h-10 shrink-0 rounded-xl bg-primary/15 px-3 text-primary hover:bg-primary/25"
+                aria-label="Adicionar benefício"
+                className="grid h-[54px] w-[54px] shrink-0 place-items-center rounded-2xl border border-primary/35 bg-primary/[0.08] text-primary shadow-[0_0_20px_oklch(0.85_0.22_145/0.12)] transition-all hover:bg-primary/[0.16] active:scale-95 disabled:opacity-40"
               >
-                <Plus className="h-4 w-4" />
-              </Button>
+                <Plus className="h-5 w-5" />
+              </button>
             </div>
 
             {benefits.length > 0 ? (
-              <ul className="mt-2 space-y-1.5">
+              <ul className="mt-3 space-y-2">
                 {benefits.map((b, i) => (
                   <li
                     key={`${b}-${i}`}
-                    className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2"
+                    className="anim-rise flex items-center gap-2 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3"
                   >
+                    <Check className="h-4 w-4 shrink-0 text-primary" />
                     <span className="min-w-0 flex-1 truncate text-sm text-foreground/90">{b}</span>
                     <button
                       type="button"
@@ -424,7 +446,7 @@ function PlanEditorDialog({
                     <button
                       type="button"
                       onClick={() => removeBenefit(i)}
-                      className="grid h-6 w-6 place-items-center rounded text-rose-300 hover:bg-rose-400/10"
+                      className="grid h-7 w-7 place-items-center rounded-lg text-rose-300 hover:bg-rose-400/10"
                       aria-label="Remover benefício"
                     >
                       <X className="h-3.5 w-3.5" />
@@ -433,39 +455,45 @@ function PlanEditorDialog({
                 ))}
               </ul>
             ) : (
-              <p className="mt-2 text-[11px] text-muted-foreground">
-                Nenhum benefício adicionado ainda.
-              </p>
+              <p className="mt-3 text-[13px] text-white/50">Nenhum benefício adicionado ainda.</p>
             )}
           </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-xs">Stripe Price ID</Label>
+          <div>
+            <Label>Stripe Price ID (opcional)</Label>
             <Input
+              className="mt-2 font-mono text-sm"
               value={stripePriceId}
               onChange={(e) => setStripePriceId(e.target.value)}
               placeholder="price_..."
-              className="font-mono text-xs"
             />
-            <p className="text-[11px] text-muted-foreground">
-              Necessário para o checkout de assinatura funcionar. Pegue em Stripe → Catálogo de
-              produtos → Preço.
+            <p className="mt-2 text-[13px] text-white/48">
+              Necessário para o checkout de assinaturas funcionar.
             </p>
           </div>
-        </div>
+        </DialogBody>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => onOpenChange(false)}
+            className="h-14 rounded-[18px] border border-white/[0.08] bg-[linear-gradient(145deg,oklch(1_0_0/0.055),oklch(1_0_0/0.025))] text-[15px] font-semibold text-foreground hover:bg-white/[0.08]"
+          >
             Cancelar
           </Button>
           <Button
             disabled={saving}
             onClick={save}
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
+            className="h-14 gap-2 rounded-[18px] bg-[linear-gradient(135deg,#4cf278,#63e987)] text-[15px] font-semibold text-[#07130b] shadow-[0_0_30px_rgba(71,255,125,0.34),0_12px_30px_rgba(37,220,94,0.20),inset_0_1px_0_rgba(255,255,255,0.38)] transition-all hover:brightness-105 active:scale-[0.98]"
           >
-            {saving ? "Salvando..." : isNew ? "Criar plano" : "Salvar alterações"}
+            {saving ? "Criando plano..." : isNew ? "Criar plano" : "Salvar alterações"}
+            {!saving && <Sparkles className="h-4 w-4" />}
           </Button>
         </DialogFooter>
+        <div className="pb-6">
+          <DialogSecurityBadge />
+        </div>
       </DialogContent>
     </Dialog>
   );

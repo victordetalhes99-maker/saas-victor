@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogIconHeader, DialogBody } from "@/components/ui/dialog";
 import {
   Search,
   Wallet,
@@ -392,56 +392,58 @@ function PaymentDetailDialog({
 
   return (
     <Dialog open={!!payment} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[520px]">
-        <DialogHeader>
-          <DialogTitle>
-            Pagamento de {payment.profiles?.full_name || payment.profiles?.email}
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="max-w-[700px]">
+        <DialogIconHeader
+          icon={CreditCard}
+          title={`Pagamento de ${payment.profiles?.full_name || payment.profiles?.email || ""}`}
+          description="Detalhes da transação sincronizada via webhook do Stripe"
+        />
 
-        <div className="divide-y divide-white/[0.06]">
-          {row("Cliente", payment.profiles?.full_name || payment.profiles?.email)}
-          {row("Plano", payment.planName ?? "Sem plano vinculado")}
-          {row("Valor", `${fmtMoney(Number(payment.amount))} ${payment.currency.toUpperCase()}`)}
-          {row(
-            "Status",
-            <span
-              className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
-                STATUS_TONE[payment.status] ?? ""
-              }`}
+        <DialogBody>
+          <div className="divide-y divide-white/[0.06] rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4">
+            {row("Cliente", payment.profiles?.full_name || payment.profiles?.email)}
+            {row("Plano", payment.planName ?? "Sem plano vinculado")}
+            {row("Valor", `${fmtMoney(Number(payment.amount))} ${payment.currency.toUpperCase()}`)}
+            {row(
+              "Status",
+              <span
+                className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                  STATUS_TONE[payment.status] ?? ""
+                }`}
+              >
+                {STATUS_LABEL[payment.status] ?? payment.status}
+              </span>,
+            )}
+            {row("Criado em", fmtDate(payment.created_at))}
+            {row("Pago em", fmtDate(payment.paid_at))}
+            {row(
+              "Invoice (Stripe)",
+              <span className="font-mono text-xs">{maskId(payment.stripe_invoice_id)}</span>,
+            )}
+            {row(
+              "Payment Intent",
+              <span className="font-mono text-xs">{maskId(payment.stripe_payment_intent_id)}</span>,
+            )}
+            {row("Ambiente", payment.environment === "sandbox" ? "Teste (sandbox)" : "Produção")}
+          </div>
+
+          <p className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3.5 text-[13px] leading-relaxed text-white/48">
+            Taxa do Stripe, valor líquido e tentativas de cobrança não são armazenados neste banco —
+            consulte esses detalhes direto no Stripe pelo link abaixo.
+          </p>
+
+          {stripeLink && (
+            <a
+              href={stripeLink}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-14 items-center justify-center gap-2 rounded-[18px] border border-primary/30 bg-primary/10 text-[15px] font-semibold text-primary transition hover:bg-primary/20"
             >
-              {STATUS_LABEL[payment.status] ?? payment.status}
-            </span>,
+              Abrir no Stripe
+              <ExternalLink className="h-4 w-4" />
+            </a>
           )}
-          {row("Criado em", fmtDate(payment.created_at))}
-          {row("Pago em", fmtDate(payment.paid_at))}
-          {row(
-            "Invoice (Stripe)",
-            <span className="font-mono text-xs">{maskId(payment.stripe_invoice_id)}</span>,
-          )}
-          {row(
-            "Payment Intent",
-            <span className="font-mono text-xs">{maskId(payment.stripe_payment_intent_id)}</span>,
-          )}
-          {row("Ambiente", payment.environment === "sandbox" ? "Teste (sandbox)" : "Produção")}
-        </div>
-
-        <p className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3 text-[11px] leading-relaxed text-muted-foreground">
-          Taxa do Stripe, valor líquido e tentativas de cobrança não são armazenados neste banco —
-          consulte esses detalhes direto no Stripe pelo link abaixo.
-        </p>
-
-        {stripeLink && (
-          <a
-            href={stripeLink}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-2.5 text-sm font-medium text-primary transition hover:bg-primary/20"
-          >
-            Abrir no Stripe
-            <ExternalLink className="h-3.5 w-3.5" />
-          </a>
-        )}
+        </DialogBody>
       </DialogContent>
     </Dialog>
   );

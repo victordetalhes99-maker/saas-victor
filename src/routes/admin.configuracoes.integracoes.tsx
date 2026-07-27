@@ -10,9 +10,8 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
+  DialogIconHeader,
+  DialogBody,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -456,20 +455,16 @@ function ConfigureDialog({
 
   return (
     <Dialog open={!!provider} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-[720px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <KeyRound className="h-4 w-4" /> Configurar {def?.name}
-          </DialogTitle>
-          <DialogDescription className="text-xs">
-            As chaves são criptografadas (AES-256-GCM) no servidor e nunca voltam ao navegador
-            depois de salvas. Deixe em branco para não alterar.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-[700px]">
+        <DialogIconHeader
+          icon={KeyRound}
+          title={`Configurar ${def?.name ?? ""}`}
+          description="As chaves são criptografadas (AES-256-GCM) no servidor e nunca voltam ao navegador depois de salvas. Deixe em branco para não alterar."
+        />
 
         {def && (
-          <div className="space-y-4">
-            <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/5 p-3 text-[11px] text-emerald-100/90">
+          <DialogBody>
+            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/5 p-4 text-[13px] text-emerald-100/90">
               <div className="mb-1 flex items-center gap-1.5 font-medium">
                 <ShieldAlert className="h-3.5 w-3.5" /> Segurança
               </div>
@@ -486,10 +481,10 @@ function ConfigureDialog({
                   return (
                     <div
                       key={v.name}
-                      className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3"
+                      className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4"
                     >
                       <div className="flex flex-wrap items-center gap-2">
-                        <Label className="font-mono text-[12px] text-foreground">{v.name}</Label>
+                        <Label className="font-mono text-[13px] text-foreground">{v.name}</Label>
                         {v.required && (
                           <Badge className="rounded-full border border-amber-300/30 bg-amber-300/10 px-1.5 py-0 text-[9px] uppercase tracking-wider text-amber-200">
                             Obrigatória
@@ -505,8 +500,8 @@ function ConfigureDialog({
                           </Badge>
                         )}
                       </div>
-                      <p className="mt-1 text-[11px] text-muted-foreground">{v.description}</p>
-                      <div className="mt-2 flex items-center gap-2">
+                      <p className="mt-1 text-[12px] text-muted-foreground">{v.description}</p>
+                      <div className="mt-3 flex items-center gap-2">
                         <div className="relative flex-1">
                           <Input
                             type={show ? "text" : "password"}
@@ -519,14 +514,14 @@ function ConfigureDialog({
                             placeholder={
                               isStored ? "•••••••• (mantém valor atual)" : "Cole a chave"
                             }
-                            className="h-9 rounded-lg bg-white/[0.03] font-mono text-[12px] pr-10"
+                            className="font-mono text-[13px] pr-10"
                           />
                           <button
                             type="button"
                             onClick={() =>
                               setReveal((prev) => ({ ...prev, [v.name]: !prev[v.name] }))
                             }
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                             aria-label={show ? "Ocultar" : "Mostrar"}
                           >
                             {show ? (
@@ -542,9 +537,9 @@ function ConfigureDialog({
                             variant="outline"
                             size="sm"
                             onClick={() => handleClear(v.name)}
-                            className="h-9 shrink-0 rounded-lg border-rose-400/30 bg-rose-400/5 text-[11px] text-rose-200 hover:bg-rose-400/10"
+                            className="h-[58px] shrink-0 rounded-2xl border-rose-400/30 bg-rose-400/5 text-[11px] text-rose-200 hover:bg-rose-400/10"
                           >
-                            <Trash2 className="h-3 w-3" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         )}
                       </div>
@@ -554,7 +549,7 @@ function ConfigureDialog({
             </div>
 
             {def.hasWebhook && def.webhookHint && (
-              <div className="rounded-xl border border-blue-400/20 bg-blue-400/5 p-3 text-[11px] text-blue-100/90">
+              <div className="rounded-2xl border border-blue-400/20 bg-blue-400/5 p-4 text-[13px] text-blue-100/90">
                 <div className="mb-1 flex items-center gap-1.5 font-medium">
                   <Info className="h-3.5 w-3.5" /> Webhook
                 </div>
@@ -567,23 +562,29 @@ function ConfigureDialog({
                 href={def.docsUrl}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="inline-flex items-center gap-1.5 text-[11px] text-primary hover:underline"
+                className="inline-flex items-center gap-1.5 text-[13px] text-primary hover:underline"
               >
                 Abrir documentação do provedor <ExternalLink className="h-3 w-3" />
               </a>
             )}
-          </div>
+          </DialogBody>
         )}
 
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={onClose} className="rounded-full">
+        <DialogFooter className="!flex flex-wrap items-center justify-end gap-2.5">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            className="h-12 rounded-2xl border-white/10 bg-white/[0.03]"
+          >
             Fechar
           </Button>
           <Button
+            type="button"
             variant="outline"
             onClick={() => handleSave(false)}
             disabled={saving}
-            className="rounded-full"
+            className="h-12 rounded-2xl border-white/10 bg-white/[0.03]"
           >
             {saving ? (
               <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
@@ -595,7 +596,7 @@ function ConfigureDialog({
           <Button
             onClick={() => handleSave(true)}
             disabled={saving}
-            className="rounded-full bg-primary text-primary-foreground"
+            className="h-12 rounded-2xl bg-[linear-gradient(135deg,#4cf278,#63e987)] text-[#07130b] shadow-[0_0_30px_rgba(71,255,125,0.34)] hover:brightness-105"
           >
             {saving ? (
               <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />

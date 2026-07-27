@@ -10,8 +10,9 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
+  DialogIconHeader,
+  DialogBody,
+  DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -32,6 +33,7 @@ import { ptBR } from "date-fns/locale";
 import {
   AlertTriangle,
   Ban,
+  CalendarClock,
   CalendarRange,
   CheckCircle2,
   Clock3,
@@ -569,36 +571,40 @@ function BlockSlotDialog({
           <Ban className="mr-2 h-3.5 w-3.5" /> Bloquear horário
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-[480px]">
-        <DialogHeader>
-          <DialogTitle className="tracking-tight">Bloquear horário</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <Label className="text-xs">Data e hora</Label>
+      <DialogContent className="max-w-[700px]">
+        <DialogIconHeader
+          icon={Ban}
+          title="Bloquear horário"
+          description="Reserve um horário indisponível na agenda"
+        />
+        <DialogBody>
+          <div>
+            <Label>Data e hora</Label>
             <Input
               type="datetime-local"
               value={when}
               onChange={(e) => setWhen(e.target.value)}
-              className="rounded-2xl border-white/10 bg-white/[0.03]"
+              className="mt-2"
             />
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Motivo (opcional)</Label>
+          <div>
+            <Label>Motivo (opcional)</Label>
             <Input
+              className="mt-2"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Ex.: almoço, manutenção..."
-              className="rounded-2xl border-white/10 bg-white/[0.03]"
             />
           </div>
+        </DialogBody>
+        <DialogFooter>
           <Button
-            className="w-full rounded-2xl bg-rose-500 text-white hover:bg-rose-500/90"
+            className="h-14 rounded-[18px] bg-rose-500 text-[15px] font-semibold text-white hover:bg-rose-500/90 sm:col-span-2"
             onClick={submit}
           >
             Bloquear
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -622,90 +628,93 @@ function AppointmentDialog({
 
   return (
     <Dialog open={!!appointment} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[480px]">
-        <DialogHeader>
-          <DialogTitle className="tracking-tight">Detalhes do agendamento</DialogTitle>
-        </DialogHeader>
-
-        <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-                Horário
+      <DialogContent className="max-w-[700px]">
+        <DialogIconHeader
+          icon={CalendarClock}
+          title="Detalhes do agendamento"
+          description="Consulte, remarque ou atualize este atendimento"
+        />
+        <DialogBody>
+          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                  Horário
+                </div>
+                <div className="mt-1 text-xl font-semibold tracking-tight">
+                  {format(new Date(appointment.scheduled_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                </div>
               </div>
-              <div className="mt-1 text-xl font-semibold tracking-tight">
-                {format(new Date(appointment.scheduled_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
-              </div>
+              <span
+                className={`rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wider ${badge.cls}`}
+              >
+                {badge.label}
+              </span>
             </div>
-            <span
-              className={`rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wider ${badge.cls}`}
+            <div className="mt-3 space-y-0.5">
+              <div className="text-sm font-medium">
+                {appointment.profile?.full_name || appointment.profile?.email || "Cliente"}
+              </div>
+              {appointment.profile?.phone && (
+                <div className="text-xs text-muted-foreground">{appointment.profile.phone}</div>
+              )}
+              <div className="text-xs text-muted-foreground">
+                {appointment.vehicle
+                  ? `${appointment.vehicle.brand} ${appointment.vehicle.model} · ${appointment.vehicle.plate}`
+                  : "Veículo não informado"}
+              </div>
+              {appointment.notes && (
+                <div className="mt-2 rounded-2xl border border-white/10 bg-white/[0.03] p-2.5 text-xs text-muted-foreground">
+                  {appointment.notes}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs">Remarcar para</Label>
+            <Input
+              type="datetime-local"
+              defaultValue={toLocalDateTimeValue(appointment.scheduled_at)}
+              onChange={(e) => setMoveTo(e.target.value)}
+              className="rounded-2xl border-white/10 bg-white/[0.03]"
+            />
+            <Button
+              className="w-full rounded-2xl bg-primary text-primary-foreground"
+              onClick={() =>
+                onMove(appointment.id, moveTo || toLocalDateTimeValue(appointment.scheduled_at))
+              }
             >
-              {badge.label}
-            </span>
+              <RotateCw className="mr-2 h-4 w-4" /> Remarcar
+            </Button>
           </div>
-          <div className="mt-3 space-y-0.5">
-            <div className="text-sm font-medium">
-              {appointment.profile?.full_name || appointment.profile?.email || "Cliente"}
-            </div>
-            {appointment.profile?.phone && (
-              <div className="text-xs text-muted-foreground">{appointment.profile.phone}</div>
-            )}
-            <div className="text-xs text-muted-foreground">
-              {appointment.vehicle
-                ? `${appointment.vehicle.brand} ${appointment.vehicle.model} · ${appointment.vehicle.plate}`
-                : "Veículo não informado"}
-            </div>
-            {appointment.notes && (
-              <div className="mt-2 rounded-2xl border border-white/10 bg-white/[0.03] p-2.5 text-xs text-muted-foreground">
-                {appointment.notes}
-              </div>
-            )}
+
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="outline"
+              className="rounded-2xl border-white/10 bg-white/[0.03]"
+              onClick={() => onStatus(appointment.id, "completed")}
+            >
+              <CheckCircle2 className="mr-2 h-4 w-4" /> Concluir
+            </Button>
+            <Button
+              variant="ghost"
+              className="rounded-2xl text-rose-300 hover:bg-rose-400/10 hover:text-rose-200"
+              onClick={() => onStatus(appointment.id, "cancelled")}
+            >
+              <X className="mr-2 h-4 w-4" /> Cancelar
+            </Button>
           </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label className="text-xs">Remarcar para</Label>
-          <Input
-            type="datetime-local"
-            defaultValue={toLocalDateTimeValue(appointment.scheduled_at)}
-            onChange={(e) => setMoveTo(e.target.value)}
-            className="rounded-2xl border-white/10 bg-white/[0.03]"
-          />
-          <Button
-            className="w-full rounded-2xl bg-primary text-primary-foreground"
-            onClick={() =>
-              onMove(appointment.id, moveTo || toLocalDateTimeValue(appointment.scheduled_at))
-            }
-          >
-            <RotateCw className="mr-2 h-4 w-4" /> Remarcar
-          </Button>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            variant="outline"
-            className="rounded-2xl border-white/10 bg-white/[0.03]"
-            onClick={() => onStatus(appointment.id, "completed")}
-          >
-            <CheckCircle2 className="mr-2 h-4 w-4" /> Concluir
-          </Button>
-          <Button
-            variant="ghost"
-            className="rounded-2xl text-rose-300 hover:bg-rose-400/10 hover:text-rose-200"
-            onClick={() => onStatus(appointment.id, "cancelled")}
-          >
-            <X className="mr-2 h-4 w-4" /> Cancelar
-          </Button>
-        </div>
-        {appointment.status === "cancelled" && (
-          <Button
-            variant="outline"
-            className="w-full rounded-2xl border-white/10 bg-white/[0.03]"
-            onClick={() => onStatus(appointment.id, "scheduled")}
-          >
-            <Clock3 className="mr-2 h-4 w-4" /> Reativar
-          </Button>
-        )}
+          {appointment.status === "cancelled" && (
+            <Button
+              variant="outline"
+              className="w-full rounded-2xl border-white/10 bg-white/[0.03]"
+              onClick={() => onStatus(appointment.id, "scheduled")}
+            >
+              <Clock3 className="mr-2 h-4 w-4" /> Reativar
+            </Button>
+          )}
+        </DialogBody>
       </DialogContent>
     </Dialog>
   );

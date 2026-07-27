@@ -10,9 +10,9 @@ import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
+  DialogIconHeader,
   DialogFooter,
+  DialogBody,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Sparkles, Plus, Pencil, Clock, Trash2 } from "lucide-react";
@@ -298,47 +298,67 @@ function ExtraEditorDialog({
 
   return (
     <Dialog open={target !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[480px]">
-        <DialogHeader>
-          <DialogTitle>{isNew ? "Novo extra" : `Editar ${extra?.name}`}</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <Label className="text-xs">Nome</Label>
+      <DialogContent className="max-w-[700px]">
+        <DialogIconHeader
+          icon={Sparkles}
+          title={isNew ? "Novo extra" : `Editar ${extra?.name}`}
+          description={
+            isNew ? "Crie um serviço extra para os agendamentos" : "Atualize os detalhes do extra"
+          }
+        />
+        <DialogBody>
+          <div>
+            <Label>Nome</Label>
             <Input
+              className="mt-2"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Higienização de bancos"
+              placeholder="Ex: Higienização de bancos"
             />
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Descrição (opcional)</Label>
-            <Input value={description} onChange={(e) => setDescription(e.target.value)} />
+          <div>
+            <Label>Descrição (opcional)</Label>
+            <Input
+              className="mt-2"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Preço (R$)</Label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label>Preço (R$)</Label>
               <Input
+                className="mt-2"
                 type="number"
                 step="0.01"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
               />
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Duração extra (min)</Label>
-              <Input type="number" value={duration} onChange={(e) => setDuration(e.target.value)} />
+            <div>
+              <Label>Duração extra (min)</Label>
+              <Input
+                className="mt-2"
+                type="number"
+                value={duration}
+                onChange={(e) => setDuration(e.target.value)}
+              />
             </div>
           </div>
-        </div>
+        </DialogBody>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => onOpenChange(false)}
+            className="h-14 rounded-[18px] border border-white/[0.08] bg-[linear-gradient(145deg,oklch(1_0_0/0.055),oklch(1_0_0/0.025))] text-[15px] font-semibold text-foreground hover:bg-white/[0.08]"
+          >
             Cancelar
           </Button>
           <Button
             disabled={saving}
             onClick={save}
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
+            className="h-14 rounded-[18px] bg-[linear-gradient(135deg,#4cf278,#63e987)] text-[15px] font-semibold text-[#07130b] shadow-[0_0_30px_rgba(71,255,125,0.34),0_12px_30px_rgba(37,220,94,0.20),inset_0_1px_0_rgba(255,255,255,0.38)] transition-all hover:brightness-105 active:scale-[0.98]"
           >
             {saving ? "Salvando..." : isNew ? "Criar extra" : "Salvar alterações"}
           </Button>
