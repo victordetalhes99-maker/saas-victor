@@ -31,6 +31,7 @@ import {
   AlertTriangle,
   XCircle,
   Circle,
+  Users,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -155,7 +156,12 @@ function ClientesPage() {
   const suspendFn = useServerFn(suspendUserAccess);
   const restoreFn = useServerFn(restoreUserAccess);
 
-  const { data: clients } = useQuery({
+  const {
+    data: clients,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["admin-clients-monitor"],
     queryFn: async () => {
       const [profilesRes, subsRes, plansRes, vehiclesRes, paymentsRes] = await Promise.all([
@@ -165,6 +171,7 @@ function ClientesPage() {
         supabase.from("vehicles").select("*"),
         supabase.from("payments").select("*").order("created_at", { ascending: false }),
       ]);
+      if (profilesRes.error) throw profilesRes.error;
       const plansById = new Map((plansRes.data ?? []).map((p: any) => [p.id, p]));
       return (profilesRes.data ?? []).map((profile: any) => ({
         ...profile,
@@ -469,99 +476,137 @@ function ClientesPage() {
 
       {/* List */}
       <div className="grid gap-3">
-        {filtered.map((c: any) => {
-          const sub = c.subscriptions?.[0];
-          const veh = c.vehicles?.[0];
-          const lastPayment = c.payments?.[0];
-          const b = c.__bucket as Bucket;
-          const tone = BUCKET_TONE[b];
-          return (
-            <Card
-              key={c.id}
-              className="overflow-hidden rounded-[22px] border border-white/10 bg-card p-4"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="flex min-w-0 flex-1 items-start gap-3">
-                  {veh?.image_url ? (
-                    <img
-                      src={veh.image_url}
-                      alt=""
-                      className="h-14 w-20 shrink-0 rounded-xl object-cover ring-1 ring-white/10"
-                    />
-                  ) : (
-                    <div className="grid h-14 w-20 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/[0.03] text-[10px] uppercase tracking-wider text-muted-foreground">
-                      sem foto
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="truncate text-base font-semibold">
-                        {c.full_name || c.email || "—"}
-                      </span>
-                      <span
-                        className={`rounded-full border px-2.5 py-0.5 text-[10px] uppercase tracking-wider ${toneClass(
-                          tone,
-                        )}`}
-                      >
-                        {BUCKET_LABEL[b]}
-                      </span>
-                    </div>
-                    <div className="mt-1 grid grid-cols-1 gap-x-4 gap-y-0.5 text-[11px] text-muted-foreground sm:grid-cols-2 lg:grid-cols-3">
-                      <span className="truncate">✉ {c.email ?? "—"}</span>
-                      <span className="truncate">☎ {c.phone ?? "—"}</span>
-                      <span className="truncate">
-                        🚗 {veh ? `${veh.brand} ${veh.model} · ${veh.plate}` : "Sem veículo"}
-                      </span>
-                      <span className="truncate">
-                        📦 {sub?.plans?.name ?? "Sem plano"}
-                        {sub?.plans?.monthly_price != null
-                          ? ` · ${fmtMoney(Number(sub.plans.monthly_price))}`
-                          : ""}
-                      </span>
-                      <span className="truncate">📅 Cadastro: {fmtDate(c.created_at)}</span>
-                      <span className="truncate">
-                        💳 Pgto: {fmtDate(lastPayment?.paid_at ?? lastPayment?.created_at)}
-                      </span>
-                      <span className="truncate">▶ Início: {fmtDate(sub?.start_date)}</span>
-                      <span className="truncate">⏳ Vencimento: {fmtDate(sub?.next_due_date)}</span>
-                      <span className="truncate">🕒 Atualizado: {fmtDateTime(c.updated_at)}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelected(c)}
-                    className="h-8 gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 text-xs"
-                  >
-                    <Eye className="h-3.5 w-3.5" />
-                    Ver detalhes
-                  </Button>
-                  <div className="flex flex-wrap justify-end gap-1.5">
-                    {actionsFor(c).map((a) => (
-                      <Button
-                        key={a.label}
-                        size="sm"
-                        variant="ghost"
-                        onClick={a.fn}
-                        className={`h-7 rounded-full border px-2.5 text-[11px] ${toneClass(
-                          a.tone ?? "gray",
-                        )}`}
-                      >
-                        {a.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </Card>
-          );
-        })}
+        {isLoading &&
+          [0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="h-24 animate-pulse rounded-[22px] border border-white/10 bg-white/[0.03]"
+            />
+          ))}
 
-        {!filtered.length && (
-          <Card className="rounded-2xl border-white/10 bg-white/[0.02] p-8 text-center text-sm text-muted-foreground">
-            Nenhum cliente nesta situação.
+        {!isLoading && isError && (
+          <Card className="rounded-2xl border-destructive/20 bg-destructive/5 p-8 text-center">
+            <p className="text-sm text-destructive-foreground">
+              Não foi possível carregar os clientes agora.
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => refetch()}
+              className="mt-3 h-8 rounded-full border border-white/10 bg-white/[0.03] px-4 text-xs"
+            >
+              Tentar novamente
+            </Button>
+          </Card>
+        )}
+
+        {!isLoading &&
+          !isError &&
+          filtered.map((c: any) => {
+            const sub = c.subscriptions?.[0];
+            const veh = c.vehicles?.[0];
+            const lastPayment = c.payments?.[0];
+            const b = c.__bucket as Bucket;
+            const tone = BUCKET_TONE[b];
+            return (
+              <Card
+                key={c.id}
+                className="overflow-hidden rounded-[22px] border border-white/10 bg-card p-4"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="flex min-w-0 flex-1 items-start gap-3">
+                    {veh?.image_url ? (
+                      <img
+                        src={veh.image_url}
+                        alt=""
+                        className="h-14 w-20 shrink-0 rounded-xl object-cover ring-1 ring-white/10"
+                      />
+                    ) : (
+                      <div className="grid h-14 w-20 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/[0.03] text-[10px] uppercase tracking-wider text-muted-foreground">
+                        sem foto
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="truncate text-base font-semibold">
+                          {c.full_name || c.email || "—"}
+                        </span>
+                        <span
+                          className={`rounded-full border px-2.5 py-0.5 text-[10px] uppercase tracking-wider ${toneClass(
+                            tone,
+                          )}`}
+                        >
+                          {BUCKET_LABEL[b]}
+                        </span>
+                      </div>
+                      <div className="mt-1 grid grid-cols-1 gap-x-4 gap-y-0.5 text-[11px] text-muted-foreground sm:grid-cols-2 lg:grid-cols-3">
+                        <span className="truncate">✉ {c.email ?? "—"}</span>
+                        <span className="truncate">☎ {c.phone ?? "—"}</span>
+                        <span className="truncate">
+                          🚗 {veh ? `${veh.brand} ${veh.model} · ${veh.plate}` : "Sem veículo"}
+                        </span>
+                        <span className="truncate">
+                          📦 {sub?.plans?.name ?? "Sem plano"}
+                          {sub?.plans?.monthly_price != null
+                            ? ` · ${fmtMoney(Number(sub.plans.monthly_price))}`
+                            : ""}
+                        </span>
+                        <span className="truncate">📅 Cadastro: {fmtDate(c.created_at)}</span>
+                        <span className="truncate">
+                          💳 Pgto: {fmtDate(lastPayment?.paid_at ?? lastPayment?.created_at)}
+                        </span>
+                        <span className="truncate">▶ Início: {fmtDate(sub?.start_date)}</span>
+                        <span className="truncate">
+                          ⏳ Vencimento: {fmtDate(sub?.next_due_date)}
+                        </span>
+                        <span className="truncate">🕒 Atualizado: {fmtDateTime(c.updated_at)}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelected(c)}
+                      className="h-8 gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 text-xs"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      Ver detalhes
+                    </Button>
+                    <div className="flex flex-wrap justify-end gap-1.5">
+                      {actionsFor(c).map((a) => (
+                        <Button
+                          key={a.label}
+                          size="sm"
+                          variant="ghost"
+                          onClick={a.fn}
+                          className={`h-7 rounded-full border px-2.5 text-[11px] ${toneClass(
+                            a.tone ?? "gray",
+                          )}`}
+                        >
+                          {a.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+
+        {!isLoading && !isError && !filtered.length && (
+          <Card className="flex flex-col items-center gap-2 rounded-2xl border-dashed border-white/10 bg-white/[0.02] p-10 text-center">
+            <Users className="h-6 w-6 text-muted-foreground/50" />
+            <p className="text-sm font-medium text-foreground">
+              {q || bucket !== "all"
+                ? "Nenhum cliente encontrado com esse filtro."
+                : "Nenhum cliente cadastrado ainda."}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {q || bucket !== "all"
+                ? "Ajuste a busca ou volte para \u201cTodos\u201d."
+                : "Convide o primeiro cliente para começar."}
+            </p>
           </Card>
         )}
       </div>
@@ -710,10 +755,10 @@ function ClientDetailsSheet({
     <Sheet open={!!client} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="flex h-full w-[92vw] flex-col gap-0 border-l border-emerald-900/40 bg-[#0B1511] p-0 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] sm:w-full sm:max-w-xl"
+        className="flex h-full w-[92vw] flex-col gap-0 border-l border-white/10 bg-[oklch(0.11_0.015_230)] p-0 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] sm:w-full sm:max-w-xl"
       >
         {/* Header (sticky) */}
-        <SheetHeader className="sticky top-0 z-10 flex-row items-start justify-between gap-3 border-b border-white/10 bg-[#07110D] px-5 py-4 pr-16 text-left">
+        <SheetHeader className="sticky top-0 z-10 flex-row items-start justify-between gap-3 border-b border-white/10 bg-[oklch(0.09_0.01_230)] px-5 py-4 pr-16 text-left">
           <div className="min-w-0 flex-1 space-y-1">
             <SheetTitle className="truncate text-lg font-semibold text-white sm:text-xl">
               {client.full_name || client.email}
@@ -734,8 +779,8 @@ function ClientDetailsSheet({
         {/* Scrollable body */}
         <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
           {/* Dados pessoais */}
-          <section className="rounded-xl border border-white/10 bg-[#0E1B16] p-4">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-emerald-300/80">
+          <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-primary/80">
               Dados pessoais
             </p>
             <div className="divide-y divide-white/[0.06]">
@@ -748,8 +793,8 @@ function ClientDetailsSheet({
           </section>
 
           {/* Veículo */}
-          <section className="rounded-xl border border-white/10 bg-[#0E1B16] p-4">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-emerald-300/80">
+          <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-primary/80">
               Veículo
             </p>
             {veh ? (
@@ -765,8 +810,8 @@ function ClientDetailsSheet({
           </section>
 
           {/* Plano e pagamento */}
-          <section className="rounded-xl border border-white/10 bg-[#0E1B16] p-4">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-emerald-300/80">
+          <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-primary/80">
               Plano e pagamento
             </p>
             <div className="divide-y divide-white/[0.06]">
@@ -800,8 +845,8 @@ function ClientDetailsSheet({
           </section>
 
           {/* Linha do tempo */}
-          <section className="rounded-xl border border-white/10 bg-[#0E1B16] p-4">
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-emerald-300/80">
+          <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-primary/80">
               Linha do tempo
             </p>
             <ol className="relative space-y-3 border-l border-white/10 pl-4">
