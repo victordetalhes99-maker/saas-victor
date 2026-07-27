@@ -1091,6 +1091,13 @@ export type Database = {
         }[];
       };
       consume_invite_token: { Args: { _token_hash: string }; Returns: string };
+      get_public_plan_stats: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          plan_id: string;
+          subscriber_count: number;
+        }[];
+      };
       get_taken_slots: {
         Args: { _end: string; _start: string };
         Returns: {

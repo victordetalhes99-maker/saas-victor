@@ -18,6 +18,13 @@ const fmtBRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", cur
 function PlanosClientePage() {
   const checkout = useServerFn(createStripeCheckout);
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [intendedPlanId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem("clube_detail_intended_plan");
+    } catch {
+      return null;
+    }
+  });
 
   const { data: plans, isLoading } = useQuery({
     queryKey: ["client-plans"],
@@ -36,6 +43,11 @@ function PlanosClientePage() {
       setLoadingId(planId);
       const res = await checkout({ data: { planId } });
       if (res?.url) {
+        try {
+          localStorage.removeItem("clube_detail_intended_plan");
+        } catch {
+          // ignore
+        }
         window.location.href = res.url;
       } else {
         toast.error("Não foi possível iniciar o checkout.");
@@ -69,8 +81,21 @@ function PlanosClientePage() {
         {!isLoading &&
           (plans ?? []).map((p: any) => {
             const disabled = !p.stripe_price_id || loadingId === p.id;
+            const isIntended = p.id === intendedPlanId;
             return (
-              <Card key={p.id} className="rounded-[20px] border-white/10 bg-card p-5">
+              <Card
+                key={p.id}
+                className={`rounded-[20px] p-5 ${
+                  isIntended
+                    ? "border-primary/40 bg-primary/[0.04] shadow-[0_0_0_1px_oklch(0.85_0.22_145/0.25)]"
+                    : "border-white/10 bg-card"
+                }`}
+              >
+                {isIntended && (
+                  <span className="mb-2 inline-block rounded-full bg-primary/15 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
+                    Escolhido por você
+                  </span>
+                )}
                 <Sparkles className="h-5 w-5 text-primary" />
                 <h3 className="mt-3 text-lg font-semibold">{p.name}</h3>
                 <div className="mt-3 flex items-baseline gap-1">
