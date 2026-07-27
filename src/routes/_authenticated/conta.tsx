@@ -133,7 +133,12 @@ function ContaPage() {
             type="button"
             onClick={async () => {
               if (!user?.email) return;
-              await supabase.auth.resetPasswordForEmail(user.email);
+              const { error } = await supabase.auth.resetPasswordForEmail(user.email);
+              if (error) {
+                toast.error("Não foi possível enviar o e-mail de redefinição.");
+              } else {
+                toast.success(`Enviamos um link de redefinição para ${user.email}.`);
+              }
             }}
             className="flex w-full items-center justify-between rounded-2xl border border-white/[0.06] bg-white/[0.03] px-4 py-3 text-left transition hover:border-primary/25 hover:bg-primary/5"
           >

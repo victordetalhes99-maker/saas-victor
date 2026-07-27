@@ -19,7 +19,7 @@ function PlanosClientePage() {
   const checkout = useServerFn(createStripeCheckout);
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
-  const { data: plans } = useQuery({
+  const { data: plans, isLoading } = useQuery({
     queryKey: ["client-plans"],
     queryFn: async () =>
       (
@@ -61,50 +61,56 @@ function PlanosClientePage() {
       </header>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {(plans ?? []).map((p: any) => {
-          const disabled = !p.stripe_price_id || loadingId === p.id;
-          return (
-            <Card key={p.id} className="rounded-[20px] border-white/10 bg-card p-5">
-              <Sparkles className="h-5 w-5 text-primary" />
-              <h3 className="mt-3 text-lg font-semibold">{p.name}</h3>
-              <div className="mt-3 flex items-baseline gap-1">
-                <span className="text-2xl font-semibold">{fmtBRL(Number(p.monthly_price))}</span>
-                <span className="text-xs text-muted-foreground">/mês</span>
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {p.washes_per_month} lavagens/mês
-              </p>
-              {p.benefits?.length ? (
-                <ul className="mt-3 space-y-1.5 text-xs text-muted-foreground">
-                  {p.benefits.map((b: string, i: number) => (
-                    <li key={i} className="flex items-start gap-1.5">
-                      <Check className="mt-0.5 h-3 w-3 shrink-0 text-primary" /> {b}
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-              <Button
-                onClick={() => onSubscribe(p.id)}
-                disabled={disabled}
-                className="mt-5 w-full rounded-2xl bg-primary text-primary-foreground shadow-[var(--shadow-glow-soft)] hover:bg-primary/90"
-              >
-                {loadingId === p.id ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Redirecionando…
-                  </>
-                ) : (
-                  "Assinar"
-                )}
-              </Button>
-              {!p.stripe_price_id && (
-                <p className="mt-2 text-center text-[10px] text-muted-foreground">
-                  Em breve disponível.
+        {isLoading &&
+          [0, 1, 2].map((i) => (
+            <div key={i} className="h-64 animate-pulse rounded-[20px] bg-white/[0.03]" />
+          ))}
+
+        {!isLoading &&
+          (plans ?? []).map((p: any) => {
+            const disabled = !p.stripe_price_id || loadingId === p.id;
+            return (
+              <Card key={p.id} className="rounded-[20px] border-white/10 bg-card p-5">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <h3 className="mt-3 text-lg font-semibold">{p.name}</h3>
+                <div className="mt-3 flex items-baseline gap-1">
+                  <span className="text-2xl font-semibold">{fmtBRL(Number(p.monthly_price))}</span>
+                  <span className="text-xs text-muted-foreground">/mês</span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {p.washes_per_month} lavagens/mês
                 </p>
-              )}
-            </Card>
-          );
-        })}
-        {!plans?.length && (
+                {p.benefits?.length ? (
+                  <ul className="mt-3 space-y-1.5 text-xs text-muted-foreground">
+                    {p.benefits.map((b: string, i: number) => (
+                      <li key={i} className="flex items-start gap-1.5">
+                        <Check className="mt-0.5 h-3 w-3 shrink-0 text-primary" /> {b}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                <Button
+                  onClick={() => onSubscribe(p.id)}
+                  disabled={disabled}
+                  className="mt-5 w-full rounded-2xl bg-primary text-primary-foreground shadow-[var(--shadow-glow-soft)] hover:bg-primary/90"
+                >
+                  {loadingId === p.id ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Redirecionando…
+                    </>
+                  ) : (
+                    "Assinar"
+                  )}
+                </Button>
+                {!p.stripe_price_id && (
+                  <p className="mt-2 text-center text-[10px] text-muted-foreground">
+                    Em breve disponível.
+                  </p>
+                )}
+              </Card>
+            );
+          })}
+        {!isLoading && !plans?.length && (
           <Card className="col-span-full rounded-2xl border-white/10 bg-white/[0.02] p-8 text-center text-sm text-muted-foreground">
             Nenhum plano disponível no momento.
           </Card>

@@ -68,7 +68,7 @@ function Agendar() {
     [],
   );
 
-  const { data: sub } = useQuery({
+  const { data: sub, isLoading: subLoading } = useQuery({
     queryKey: ["sub-active", user?.id],
     queryFn: async () => {
       const { data } = await supabase
@@ -82,13 +82,13 @@ function Agendar() {
     },
   });
 
-  const { data: vehicles } = useQuery({
+  const { data: vehicles, isLoading: vehiclesLoading } = useQuery({
     queryKey: ["vehicles", user?.id],
     queryFn: async () =>
       (await supabase.from("vehicles").select("*").eq("user_id", user!.id)).data ?? [],
   });
 
-  const { data: extras } = useQuery({
+  const { data: extras, isLoading: extrasLoading } = useQuery({
     queryKey: ["extra-services"],
     queryFn: async () => {
       const { data } = await supabase
@@ -100,7 +100,7 @@ function Agendar() {
     },
   });
 
-  const { data: allPlans } = useQuery({
+  const { data: allPlans, isLoading: plansLoading } = useQuery({
     queryKey: ["plans-active"],
     queryFn: async () => {
       const { data } = await supabase
@@ -250,6 +250,23 @@ function Agendar() {
     }
   };
 
+  const pageLoading = subLoading || vehiclesLoading || extrasLoading || plansLoading;
+
+  if (pageLoading) {
+    return (
+      <div className="space-y-6 pb-40">
+        <div className="h-10 w-40 animate-pulse rounded-full bg-white/[0.03]" />
+        <div className="h-24 animate-pulse rounded-2xl bg-white/[0.03]" />
+        <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <div key={i} className="h-16 animate-pulse rounded-xl bg-white/[0.03]" />
+          ))}
+        </div>
+        <div className="h-40 animate-pulse rounded-2xl bg-white/[0.03]" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 pb-40">
       <header className="anim-rise pt-4">
@@ -259,7 +276,7 @@ function Agendar() {
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           {sub
-            ? `${sub.plans?.name} Â· ${remaining} lavagem(ns) restantes`
+            ? `${sub.plans?.name} · ${remaining} lavagem(ns) restantes`
             : "VocÃª ainda nÃ£o tem um plano ativo."}
         </p>
       </header>
@@ -370,7 +387,7 @@ function Agendar() {
                   <div className="truncate text-sm font-medium">{e.name}</div>
                   <div className="text-[11px] text-muted-foreground">
                     {e.price_cents > 0 ? `+ ${fmtBRL(e.price_cents)}` : "PreÃ§o a definir"}
-                    {e.duration_minutes ? ` Â· +${e.duration_minutes} min` : ""}
+                    {e.duration_minutes ? ` · +${e.duration_minutes} min` : ""}
                   </div>
                 </div>
                 <button
@@ -496,7 +513,7 @@ function Agendar() {
                         {e.name}
                       </span>
                       <span className="text-[11px] text-muted-foreground">
-                        +{e.duration_minutes}min Â· {fmtBRL(e.price_cents)}
+                        +{e.duration_minutes}min · {fmtBRL(e.price_cents)}
                       </span>
                     </li>
                   ))}
@@ -578,7 +595,7 @@ function Agendar() {
         <div className="mx-auto max-w-5xl px-4 py-3">
           <div className="flex items-center gap-3">
             <div className="hidden flex-1 grid-cols-4 gap-3 sm:grid">
-              <SummaryCell label="Plano" value={sub?.plans?.name ?? "â€”"} />
+              <SummaryCell label="Plano" value={sub?.plans?.name ?? "—"} />
               <SummaryCell
                 label="Extras"
                 value={`${selectedExtrasList.length} selecionado${selectedExtrasList.length === 1 ? "" : "s"}`}
@@ -592,7 +609,7 @@ function Agendar() {
                   Total extras
                 </div>
                 <div className="text-sm font-semibold">
-                  {fmtBRL(extrasTotalCents)} Â· {fmtDuration(totalMinutes)}
+                  {fmtBRL(extrasTotalCents)} · {fmtDuration(totalMinutes)}
                 </div>
               </div>
             </div>

@@ -71,7 +71,7 @@ function VehiclesPage() {
   const [photoVehicle, setPhotoVehicle] = useState<Vehicle | null>(null);
   const [creating, setCreating] = useState(false);
 
-  const { data: vehicles } = useQuery({
+  const { data: vehicles, isLoading: vehiclesLoading } = useQuery({
     queryKey: ["vehicles-all", user?.id],
     queryFn: async () => {
       const { data } = await supabase
@@ -155,7 +155,12 @@ function VehiclesPage() {
         </h1>
       </header>
 
-      {!hasVehicles ? (
+      {vehiclesLoading ? (
+        <div className="space-y-4">
+          <div className="h-56 animate-pulse rounded-3xl bg-white/[0.03]" />
+          <div className="h-24 animate-pulse rounded-2xl bg-white/[0.03]" />
+        </div>
+      ) : !hasVehicles ? (
         <EmptyGarage onCreate={() => setCreating(true)} />
       ) : (
         <>

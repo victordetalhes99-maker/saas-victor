@@ -14,7 +14,7 @@ export const Route = createFileRoute("/_authenticated/historico")({
 
 function History() {
   const { user } = useAuth();
-  const { data: items } = useQuery({
+  const { data: items, isLoading } = useQuery({
     queryKey: ["history", user?.id],
     queryFn: async () =>
       (
@@ -29,7 +29,13 @@ function History() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Histórico</h1>
-      {items?.length ? (
+      {isLoading ? (
+        <div className="space-y-3">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-16 animate-pulse rounded-2xl bg-white/[0.03]" />
+          ))}
+        </div>
+      ) : items?.length ? (
         items.map((a) => {
           const cfg =
             a.status === "completed"

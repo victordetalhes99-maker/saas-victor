@@ -60,7 +60,7 @@ function greet() {
 function Dashboard() {
   const { user } = useAuth();
 
-  const { data: profile } = useQuery({
+  const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["profile", user?.id],
     queryFn: async () => {
       const { data } = await supabase.from("profiles").select("*").eq("id", user!.id).maybeSingle();
@@ -68,7 +68,7 @@ function Dashboard() {
     },
   });
 
-  const { data: sub } = useQuery({
+  const { data: sub, isLoading: subLoading } = useQuery({
     queryKey: ["sub", user?.id],
     queryFn: async () => {
       const { data } = await supabase
@@ -82,7 +82,7 @@ function Dashboard() {
     },
   });
 
-  const { data: vehicle } = useQuery({
+  const { data: vehicle, isLoading: vehicleLoading } = useQuery({
     queryKey: ["primary-vehicle", user?.id],
     queryFn: async () => {
       const { data } = await supabase
@@ -96,7 +96,7 @@ function Dashboard() {
     },
   });
 
-  const { data: nextAppt } = useQuery({
+  const { data: nextAppt, isLoading: nextApptLoading } = useQuery({
     queryKey: ["nextAppt", user?.id],
     queryFn: async () => {
       const today = new Date();
@@ -114,7 +114,7 @@ function Dashboard() {
     },
   });
 
-  const { data: history } = useQuery({
+  const { data: history, isLoading: historyLoading } = useQuery({
     queryKey: ["dashHistory", user?.id],
     queryFn: async () => {
       const { data } = await supabase
@@ -150,6 +150,21 @@ function Dashboard() {
   const firstName = profile?.full_name?.trim().split(" ")[0] || "cliente";
   const benefits: string[] = sub?.plans?.benefits ?? [];
   const isTopPlan = !!(isActive && topPlan && sub?.plans?.id === topPlan.id);
+  const isLoading =
+    profileLoading || subLoading || vehicleLoading || nextApptLoading || historyLoading;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8 pb-8">
+        <div className="h-48 animate-pulse rounded-3xl border border-white/[0.06] bg-white/[0.03]" />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="h-32 animate-pulse rounded-2xl bg-white/[0.03]" />
+          <div className="h-32 animate-pulse rounded-2xl bg-white/[0.03]" />
+        </div>
+        <div className="h-40 animate-pulse rounded-2xl bg-white/[0.03]" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 pb-8">

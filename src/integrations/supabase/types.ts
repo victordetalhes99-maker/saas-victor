@@ -796,6 +796,7 @@ export type Database = {
           lgpd_consent_at: string | null;
           lgpd_consent_version: string | null;
           notes: string | null;
+          notification_prefs: Json;
           phone: string | null;
           referral_source: string | null;
           rejection_reason: string | null;
@@ -823,6 +824,7 @@ export type Database = {
           lgpd_consent_at?: string | null;
           lgpd_consent_version?: string | null;
           notes?: string | null;
+          notification_prefs?: Json;
           phone?: string | null;
           referral_source?: string | null;
           rejection_reason?: string | null;
@@ -850,6 +852,7 @@ export type Database = {
           lgpd_consent_at?: string | null;
           lgpd_consent_version?: string | null;
           notes?: string | null;
+          notification_prefs?: Json;
           phone?: string | null;
           referral_source?: string | null;
           rejection_reason?: string | null;

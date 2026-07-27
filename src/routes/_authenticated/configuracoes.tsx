@@ -1,17 +1,58 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { ArrowLeft, Bell, Moon, Mail, Settings as SettingsIcon } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   component: ConfiguracoesPage,
 });
 
+type NotificationPrefs = { push: boolean; email: boolean; reminders: boolean };
+const DEFAULT_PREFS: NotificationPrefs = { push: true, email: true, reminders: true };
+
 function ConfiguracoesPage() {
-  const [pushNotif, setPushNotif] = useState(true);
-  const [emailNotif, setEmailNotif] = useState(true);
-  const [reminders, setReminders] = useState(true);
+  const { user } = useAuth();
+
+  const { data: profile, isLoading } = useQuery({
+    queryKey: ["notification-prefs", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("notification_prefs")
+        .eq("id", user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const [prefs, setPrefs] = useState<NotificationPrefs>(DEFAULT_PREFS);
+
+  useEffect(() => {
+    if (profile?.notification_prefs) {
+      setPrefs({ ...DEFAULT_PREFS, ...(profile.notification_prefs as Partial<NotificationPrefs>) });
+    }
+  }, [profile]);
+
+  const updatePref = async (key: keyof NotificationPrefs, value: boolean) => {
+    const next = { ...prefs, [key]: value };
+    setPrefs(next); // optimistic
+    if (!user?.id) return;
+    const { error } = await supabase
+      .from("profiles")
+      .update({ notification_prefs: next })
+      .eq("id", user.id);
+    if (error) {
+      setPrefs(prefs); // revert
+      toast.error("Não foi possível salvar a preferência.");
+    }
+  };
 
   return (
     <div className="space-y-6 pb-8">
@@ -50,22 +91,25 @@ function ConfiguracoesPage() {
             icon={Bell}
             label="Notificações push"
             description="Alertas no dispositivo"
-            checked={pushNotif}
-            onChange={setPushNotif}
+            checked={prefs.push}
+            disabled={isLoading}
+            onChange={(v) => updatePref("push", v)}
           />
           <Row
             icon={Mail}
             label="E-mails de confirmação"
             description="Agendamentos e recibos"
-            checked={emailNotif}
-            onChange={setEmailNotif}
+            checked={prefs.email}
+            disabled={isLoading}
+            onChange={(v) => updatePref("email", v)}
           />
           <Row
             icon={Bell}
             label="Lembretes de lavagem"
             description="Aviso antes do horário"
-            checked={reminders}
-            onChange={setReminders}
+            checked={prefs.reminders}
+            disabled={isLoading}
+            onChange={(v) => updatePref("reminders", v)}
           />
         </div>
       </section>
@@ -102,12 +146,14 @@ function Row({
   description,
   checked,
   onChange,
+  disabled,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   description: string;
   checked: boolean;
   onChange: (v: boolean) => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.03] px-4 py-3">
@@ -120,7 +166,7 @@ function Row({
         </div>
         <div className="mt-0.5 truncate text-[11px] text-muted-foreground">{description}</div>
       </div>
-      <Switch checked={checked} onCheckedChange={onChange} />
+      <Switch checked={checked} onCheckedChange={onChange} disabled={disabled} />
     </div>
   );
 }
